@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>福祉用具デモ商品管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--bg:#eef1f5;--card:#fff;--tx:#1c2430;--sub:#73808f;--line:#e3e7ed;--pri:#2a6bd6;--pri-dk:#1d53ab;--red:#d9392b;
+--ok:#189165;--lend:#3568d4;--over:#dd3f3f;--mnt:#dd8f1e;--del:#98a1ab;--resv:#8c4fd9;
+--radius:16px;--radius-sm:11px;--shadow:0 1px 2px rgba(20,30,50,.06),0 1px 1px rgba(20,30,50,.04);
+--shadow-md:0 4px 14px rgba(20,30,50,.10);--shadow-lg:0 12px 28px rgba(20,30,50,.16)}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;background:var(--bg);color:var(--tx);font-size:1rem;-webkit-font-smoothing:antialiased}
+header{background:linear-gradient(180deg,#ffffff,#fbfcfe);color:var(--tx);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(20,30,50,.02)}
+header h1{font-size:1.08rem;font-weight:800;margin:0;flex:1;min-width:170px;display:flex;align-items:center;gap:9px;letter-spacing:.01em}
+header h1::before{content:"🧰";display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,var(--pri),var(--pri-dk));font-size:1.05rem;box-shadow:var(--shadow)}
+button{font:inherit;cursor:pointer;border:1px solid transparent;border-radius:999px;padding:9px 16px;min-height:42px;background:#fff;color:var(--pri);font-weight:700;transition:transform .12s ease,box-shadow .12s ease,background-color .12s ease;box-shadow:var(--shadow)}
+button:hover{box-shadow:var(--shadow-md)}
+button:active{transform:scale(.97)}
+button.p{background:var(--pri);color:#fff;border-color:var(--pri)}button.p:hover{background:var(--pri-dk)}
+button.d{background:#fff;color:var(--over);border-color:#f3c9c9}button.d:hover{background:#fff5f5}
+button.g{background:#f1f3f7;color:var(--tx);border-color:#f1f3f7;box-shadow:none}button.g:hover{background:#e7ebf1}
+button.r{background:var(--resv);color:#fff;border-color:var(--resv)}
+button.big{font-size:1.1rem;min-height:54px;flex:1}
+header button{background:#fff;color:var(--tx);border:1px solid var(--line);padding:8px 14px;min-height:40px;font-size:.92rem}
+header button:hover{background:#f3f6fb;border-color:#d6dee9}
+header #bNew{background:var(--pri);color:#fff;border-color:var(--pri)}header #bNew:hover{background:var(--pri-dk)}
+main{max-width:1280px;margin:0 auto;padding:16px 16px 104px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.chip{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:8px 16px;cursor:pointer;min-width:86px;text-align:center;box-shadow:var(--shadow);transition:border-color .12s ease,transform .12s ease}
+.chip:hover{transform:translateY(-1px)}
+.chip b{display:block;font-size:1.35rem;line-height:1.2;font-weight:800}.chip small{color:var(--sub);font-size:.76rem}
+.chip.on{border-color:var(--pri);background:#eef4ff}.chip.on b{color:var(--pri-dk)}
+.chip.over b{color:var(--over)}.chip.over.on{background:#fdeeee;border-color:var(--over)}.chip.over.on b{color:var(--over)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;background:var(--card);padding:10px;border-radius:var(--radius-sm);box-shadow:var(--shadow)}
+input,select,textarea{font:inherit}
+.bar input,.bar select,.f input,.f select,.f textarea{padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fbfcfe;min-width:0;color:var(--tx)}
+.bar input:focus,.bar select:focus,.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--pri);background:#fff}
+.bar input[type=search]{flex:1;min-width:230px}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:#fbfcfe}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--sub);padding:8px 14px;min-height:40px;box-shadow:none}
+.seg button.on{background:var(--pri);color:#fff;font-weight:800}
+.chk{display:flex;align-items:center;gap:6px;background:#fbfcfe;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px;cursor:pointer}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.tile{background:var(--card);border-radius:var(--radius);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-md);position:relative;display:flex;flex-direction:column;border:1px solid rgba(20,30,50,.04);transition:transform .14s ease,box-shadow .14s ease}
+.tile:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
+.tile:active{transform:scale(.98)}
+.ph{position:relative;aspect-ratio:4/3;background:linear-gradient(180deg,#f7f8fa,#eef0f3);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:contain;padding:10px}
+.ph .em{font-size:3.2rem;opacity:.75}
+.tile.dim .ph::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.55)}
+.tile.dim .ph{filter:saturate(.75)}
+.tile .info{padding:11px 13px 13px;display:flex;flex-direction:column;gap:3px;flex:1}
+.tile .nm{font-weight:800;font-size:.95rem;line-height:1.35;color:var(--tx);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile .tag{position:absolute;left:10px;top:10px;z-index:3;color:#fff;font-weight:700;font-size:.74rem;padding:5px 11px;border-radius:999px;background:var(--c,var(--ok));box-shadow:0 2px 6px rgba(0,0,0,.18);letter-spacing:.01em}
+.tile .note{position:absolute;right:10px;top:10px;z-index:3;background:#ffd84d;color:#6b5400;border-radius:999px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:.8rem;box-shadow:0 2px 6px rgba(0,0,0,.2);font-weight:700}
+.tile .sub{font-size:.82rem;color:var(--sub);line-height:1.4}
+.tile .sub b{color:var(--tx)}
+.badge{display:inline-block;color:#fff;border-radius:999px;padding:3px 12px;font-size:.78rem;font-weight:700;background:var(--c,var(--ok))}
+.s-在庫{--c:var(--ok)}.s-貸出中{--c:var(--lend)}.s-期限超過{--c:var(--over)}.s-予約中{--c:var(--resv)}.s-メンテ中{--c:var(--mnt)}.s-廃棄{--c:var(--del)}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow)}
+th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:.92rem;white-space:nowrap}
+th{background:#f5f7fa;color:var(--sub);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}tbody tr{cursor:pointer}tbody tr:hover{background:#f5f8fd}
+.wrap{overflow-x:auto;border-radius:var(--radius-sm)}
+.empty{text-align:center;color:var(--sub);padding:60px 20px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+.fab{position:fixed;right:20px;bottom:20px;width:80px;height:80px;border-radius:50%;background:linear-gradient(145deg,var(--pri),var(--pri-dk));color:#fff;font-size:1.8rem;box-shadow:0 8px 22px rgba(42,107,214,.42);z-index:30;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;border:none}
+.fab:hover{box-shadow:0 10px 26px rgba(42,107,214,.5)}
+.fab small{font-size:.66rem;font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(20,26,36,.55);backdrop-filter:blur(1px);display:none;align-items:flex-start;justify-content:center;padding:16px 10px;overflow:auto;z-index:50}
+.modal.on{display:flex}
+.box{background:#fff;border-radius:20px;padding:20px;width:100%;max-width:560px;box-shadow:var(--shadow-lg)}
+.box.w{max-width:760px}
+.box h2{margin:0 0 12px;font-size:1.18rem;font-weight:800}
+.f{display:grid;gap:10px}.f label{font-size:.82rem;color:var(--sub);display:grid;gap:4px;font-weight:600}
+.f .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.row .sp{flex:1}
+dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{color:var(--sub);font-size:.85rem}dd{margin:0}
+.dph{aspect-ratio:16/10;background:linear-gradient(180deg,#f7f8fa,#eef0f3);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px}
+.dph img{width:100%;height:100%;object-fit:contain}.dph .em{font-size:4rem;opacity:.75}
+.stick{background:#fff8d6;border-left:4px solid #f0cf4d;border-radius:8px;padding:9px 11px;margin:6px 0;box-shadow:var(--shadow);font-size:.92rem;position:relative}
+.stick small{color:#8a7a00;display:block}.stick .x{position:absolute;right:4px;top:2px;background:none;color:#8a7a00;padding:2px 8px;min-height:0;box-shadow:none}
+.bcv{display:flex;justify-content:center;margin:8px 0}
+#toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);background:#1c2430;color:#fff;padding:11px 20px;border-radius:999px;display:none;z-index:99;max-width:90vw;text-align:center;box-shadow:var(--shadow-lg)}
+#reader{width:100%;min-height:240px;background:#000;border-radius:var(--radius-sm);overflow:hidden}
+.lbllist{max-height:220px;overflow:auto;border:1.5px solid var(--line);border-radius:10px;padding:6px}
+.lbllist label{display:flex;gap:8px;padding:6px 4px;align-items:center}
+.mode{font-size:.72rem;background:#ffe9a8;color:#7a5b00;padding:2px 10px;border-radius:999px;font-weight:700}
+.hint{font-size:.8rem;color:var(--sub);margin:4px 0}
+.gunit{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:11px 4px;border-bottom:1px solid var(--line)}
+.gunit .no{font-size:1.25rem;font-weight:800;min-width:1.6em;color:var(--pri-dk)}
+#labelPrev{background:#fff;border:1.5px dashed #c3cad4;border-radius:10px;padding:8px;text-align:center;overflow:auto}
+#labelPrev img{max-width:100%;image-rendering:auto}
+#printArea{display:none}
+/* ===== 印刷 ===== */
+@media print{
+ body>*:not(#printArea){display:none!important}
+ body{background:#fff}
+ #printArea{display:block}
+ body[data-pm=card] #printArea{display:grid;grid-template-columns:repeat(2,90mm);gap:6mm 8mm;justify-content:center;padding:6mm}
+ .cd{width:90mm;height:128mm;border:1.5px solid var(--red);border-radius:2mm;break-inside:avoid;display:flex;flex-direction:column;font-size:3.4mm;overflow:hidden;position:relative;background:#fff}
+ .cd-h{background:var(--red);color:#fff;font-weight:700;font-size:5.4mm;text-align:center;padding:2mm 9mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;position:relative;line-height:1.3}
+ .cd-t{position:absolute;right:1.8mm;top:50%;transform:translateY(-50%);background:#fff;color:var(--red);font-size:4mm;font-weight:700;min-width:6mm;text-align:center;padding:.8mm 1.5mm;border-radius:1mm;line-height:1}
+ .cd-n{background:var(--red);color:#fff;text-align:center;padding:0 2mm 1.8mm;font-size:4mm;min-height:9mm;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.25}
+ .cd-l{display:flex;align-items:center;justify-content:center;font-size:5.2mm;font-weight:700;padding:1.6mm 0;letter-spacing:.08em;border-bottom:1px solid rgba(0,0,0,.12)}
+ .cd-l.loc-店{background:#f4ecd8;color:#2b2b2b}
+ .cd-l.loc-倉庫{background:#f4ecd8;color:#2b2b2b}
+ .cd-l.loc-本体貼付け{background:#fff35c;color:#2b2b2b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .cd-p{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:2mm;position:relative}
+ .cd-p img{max-width:100%;max-height:100%;object-fit:contain}.cd-p .em{font-size:20mm}
+ .cd-p .mdl{position:absolute;left:2mm;top:2mm;background:#fff35c;color:#2b2b2b;font-size:3.1mm;font-weight:700;padding:.6mm 2mm;border-radius:.6mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;box-shadow:.3mm .3mm 0 rgba(0,0,0,.15)}
+ .cd-b{text-align:center;padding:1mm 0 2mm;border-top:1px solid rgba(0,0,0,.1)}.cd-b svg{width:60mm;height:12mm}
+ body[data-pm=ledger] table,body[data-pm=stock] table{border-radius:0}
+ body[data-pm=ledger] th,body[data-pm=ledger] td,body[data-pm=stock] th,body[data-pm=stock] td{border:1px solid #666;padding:2.2mm;font-size:3.6mm;white-space:normal}
+ body[data-pm=ledger] h3,body[data-pm=stock] h3{margin:0 0 3mm;font-size:5mm}
+ body[data-pm=label] #printArea img{display:block;page-break-after:always}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>🧰 デモ商品管理 <span id="modeTag" class="mode" style="display:none">試用モード</span></h1>
+ <button id="bNew">＋ 登録</button>
+ <button id="bBulk">📦 まとめて持出/返却</button>
+ <button id="bDep">📋 出発チェック</button>
+ <button id="bAudit">🧮 棚卸</button>
+ <button id="bLabel">🏷 ラベル</button>
+ <button id="bPrint">🖨 印刷</button>
+ <button id="bFont" title="文字サイズ">文字 大/小</button>
+ <button id="bRef">↻</button>
+ <button id="bSet">⚙</button>
+</header>
+<main>
+ <div class="chips" id="chips"></div>
+ <div class="bar">
+  <input type="search" id="q" placeholder="🔍 商品名・ID・型番・お客様名・担当で検索">
+  <select id="fCat"></select>
+  <select id="fStaff"><option value="">担当：すべて</option></select>
+  <select id="sortKey">
+   <option value="due">並び：返却予定日</option><option value="name">商品名</option><option value="id">ID</option>
+   <option value="cat">カテゴリ</option><option value="status">状態</option><option value="upd">更新が新しい</option>
+  </select>
+  <button class="g" id="sortDir">↑ 昇順</button>
+  <label class="chk"><input type="checkbox" id="grp"> 機種でまとめる</label>
+  <div class="seg" id="views">
+   <button data-v="tile" class="on">タイル</button><button data-v="list">在庫一覧</button><button data-v="sum">集計</button>
+  </div>
+ </div>
+ <div id="content"></div>
+</main>
+<button class="fab" id="bScan">📷<small>読み取り</small></button>
+
+<!-- 詳細 -->
+<div class="modal" id="mDetail"><div class="box" id="detailBox"></div></div>
+<!-- 機種まとめ -->
+<div class="modal" id="mGroup"><div class="box" id="groupBox"></div></div>
+<!-- 編集 -->
+<div class="modal" id="mEdit"><div class="box">
+ <h2 id="editTitle">商品登録</h2>
+ <div class="f">
+  <div class="two"><label>ID（バーコードに入ります）<input id="eId"></label><label>号機（同じ機種の何台目か）<input id="eNo" type="number" min="1" placeholder="例 1"></label></div>
+  <label>機種名<input id="eName"></label>
+  <div class="two"><label>型番<input id="eModel"></label><label>メーカー<input id="eMaker"></label></div>
+  <div class="two"><label>カテゴリ<input id="eCat" list="catList"><datalist id="catList"></datalist></label><label>保管場所<input id="ePlace" list="placeList"><datalist id="placeList"><option value="店"><option value="倉庫"></datalist></label></div>
+  <label>状態<select id="eStatus"></select></label>
+  <label>写真<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+   <img id="ePrev" style="width:96px;height:72px;object-fit:contain;background:#f3f3f3;border-radius:8px;display:none">
+   <button class="g" type="button" id="ePhotoCam">📷 撮影</button><button class="g" type="button" id="ePhotoPick">🖼 選ぶ</button></div></label>
+  <input type="file" id="ePhotoF1" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="ePhotoF2" accept="image/*" style="display:none">
+ </div>
+ <div class="row"><button class="d" id="eDel" style="display:none">削除</button><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="eSave">保存</button></div>
+</div></div>
+<!-- 貸出 -->
+<div class="modal" id="mLend"><div class="box">
+ <h2>貸出（納品）</h2><div id="lendName" style="margin-bottom:8px;font-weight:700"></div>
+ <div class="f">
+  <label>貸出先（置いてくるお客様名・施設名）<input id="lDest"></label>
+  <div class="two"><label>貸出日<input type="date" id="lFrom"></label><label>返却予定日（自動：貸出日の1週間後）<input type="date" id="lDue"></label></div>
+  <div class="two"><label>担当営業<input id="lStaff" list="staffList"><datalist id="staffList"></datalist></label>
+  <label>配達担当（運んだ人）<input id="lDriver" list="driverList"><datalist id="driverList"></datalist></label></div>
+  <label>メモ（任意・付箋に残ります）<input id="lNote" placeholder="例：玄関に設置、家族に説明済み"></label>
+ </div>
+ <div class="hint">返却予定日の朝に、事務と担当営業へGoogleチャットで連絡します。</div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="lOk">貸出する</button></div>
+</div></div>
+<!-- 予約 -->
+<div class="modal" id="mResv"><div class="box">
+ <h2>予約（取り置き）</h2><div id="resvName" style="margin-bottom:8px;font-weight:700"></div>
+ <div class="f">
+  <label>予約者（お客様名）<input id="rName"></label>
+  <label>お渡し予定日<input type="date" id="rDate"></label>
+  <label>メモ（任意）<input id="rNote" placeholder="例：退院日に合わせて、TELしてから"></label>
+ </div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="r" id="rOk">予約する</button></div>
+</div></div>
+<!-- スキャン -->
+<div class="modal" id="mScan"><div class="box">
+ <h2>バーコード読み取り</h2><div id="reader"></div>
+ <div class="hint">ラベルのバーコードを枠に合わせてください。読めない時はIDを手入力できます。USB/Bluetoothのバーコードリーダーは、この画面以外でもそのまま読み取れます。</div>
+ <div class="row"><input id="manualId" placeholder="IDを手入力" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="p" id="manualGo">開く</button></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- まとめて持出・返却 -->
+<div class="modal" id="mBulk"><div class="box w">
+ <h2>📦 まとめて持出・返却</h2>
+ <div class="hint">同じお客様先へ何点か届ける時や、何点か引き取ってきた時に、1件ずつではなくまとめて記録できます。</div>
+ <div class="seg" id="bulkMode"><button data-m="lend" class="on">まとめて持ち出し</button><button data-m="return">まとめて返却</button></div>
+ <div class="f" id="bulkLendFields" style="margin-top:10px">
+  <label>貸出先（置いてくるお客様名・施設名）<input id="bDest"></label>
+  <div class="two"><label>貸出日<input type="date" id="bFrom"></label><label>返却予定日（自動：貸出日の1週間後）<input type="date" id="bDue"></label></div>
+  <div class="two"><label>担当営業<input id="bStaff" list="staffList"></label><label>配達担当（運んだ人）<input id="bDriver" list="driverList"></label></div>
+  <label>メモ（任意・全件の付箋に残ります）<input id="bNote"></label>
+ </div>
+ <input id="bulkQ" type="search" placeholder="🔍 商品を検索して追加" style="width:100%;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px">
+ <div id="bulkSearch" class="lbllist" style="display:none;margin-top:6px"></div>
+ <div class="chips" id="bulkChips" style="margin-top:10px"></div>
+ <div id="bulkList"></div>
+ <div id="readerBulk"></div>
+ <div class="row"><input id="bulkManual" placeholder="読めない時はIDを手入力" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="p" id="bulkManualGo">追加</button></div>
+ <div class="row"><button class="g" id="bulkClear">リストを空にする</button><span class="sp"></span><button class="p big" id="bulkGo">まとめて持ち出す</button></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 棚卸（在庫確認） -->
+<div class="modal" id="mAudit"><div class="box w">
+ <h2>🧮 棚卸（在庫確認）</h2>
+ <div class="hint">「在庫」のはずの商品を一通りスキャンします。読み取れなかった商品は、記録なしで持ち出された可能性があります。</div>
+ <div class="f">
+  <div class="two"><label>対象の場所<select id="auPlace"><option value="">すべて</option><option>店</option><option>倉庫</option></select></label>
+   <label>対象のカテゴリ<select id="auCat"><option value="">すべて</option></select></label></div>
+ </div>
+ <div class="row"><button class="p" id="auStart">この条件で開始</button><button class="g" id="auReset" style="display:none">やり直す</button></div>
+ <div id="auBody" style="display:none">
+  <div class="chips" id="auChips"></div>
+  <div id="readerAudit"></div>
+  <div class="row"><input id="auManual" placeholder="読めない時はIDを手入力" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="p" id="auManualGo">確認する</button></div>
+  <div id="auLists"></div>
+  <div class="row"><button class="g" id="auPrintMiss">未読み取り分を印刷</button></div>
+ </div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 出発前チェック -->
+<div class="modal" id="mDep"><div class="box w">
+ <h2>📋 出発前チェック（持出予定の確認）</h2>
+ <div class="hint">今日届ける商品をあらかじめ選んでおき、車に積む・持ち出す前にスキャンしてチェックします。リストに残っていればスキャン漏れです。リストは端末ごとに保存され、日付が変わると自動でリセットされます。</div>
+ <input id="depQ" type="search" placeholder="🔍 商品を検索して追加" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px">
+ <div id="depSearch" class="lbllist" style="display:none;margin-top:6px"></div>
+ <div class="chips" id="depChips" style="margin-top:10px"></div>
+ <div id="depList"></div>
+ <div id="readerDep"></div>
+ <div class="row"><input id="depManual" placeholder="読めない時はIDを手入力" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="p" id="depManualGo">チェックする</button></div>
+ <div class="row"><button class="g" id="depClear">リストを空にする</button><span class="sp"></span><button class="g" id="depPrint">紙の控えを印刷</button></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- ラベル -->
+<div class="modal" id="mLabel"><div class="box w">
+ <h2>バーコードラベル（テプラ SR5900P・24mm幅）</h2>
+ <div class="row" style="margin:0 0 8px"><button class="g" id="lblAll">全選択</button><button class="g" id="lblNone">全解除</button>
+  <input id="lblQ" type="search" placeholder="絞り込み" style="flex:1;min-width:120px;padding:8px;border:1px solid var(--line);border-radius:10px"></div>
+ <div class="lbllist" id="lblList"></div>
+ <div class="f" style="margin-top:10px">
+  <div class="two"><label>印字高さ（mm）※24mm幅は18mm目安<input type="number" id="lblH" value="18" min="6" max="27" step="0.5"></label>
+  <label>ラベルの長さ（mm）<input type="number" id="lblLen" value="70" min="30" max="150"></label></div>
+  <label class="chk"><input type="checkbox" id="lblName" checked> 機種名・号機も印字する</label>
+ </div>
+ <div class="hint">プレビュー（実寸の縦横比）</div>
+ <div id="labelPrev"></div>
+ <div class="row">
+  <button class="p" id="lblZip">PNGをまとめて保存(ZIP)</button>
+  <button class="g" id="lblCsv">CSVを保存</button>
+  <button class="g" id="lblCopy">表をコピー</button>
+  <button class="g" id="lblPrint">ブラウザで印刷</button>
+ </div>
+ <div class="hint">■テプラ「SPC10」から使う場合：CSVを取り込むか「表をコピー」を貼り付け、バーコード種類を CODE128 にして「流し込み」印刷。列は 左から <b>ID／ID(表示用)／機種名／号機／型番</b>。<br>
+ ■PNGはテプラの編集ソフトに画像として取り込みます（360dpi・実寸で作成）。</div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 印刷メニュー -->
+<div class="modal" id="mPrint"><div class="box">
+ <h2>印刷</h2>
+ <div class="f">
+  <button class="p big" id="pLedger">📋 貸出台帳（クリップボード用紙の形）</button>
+  <button class="p big" id="pStock">📄 在庫一覧（今の絞り込み結果）</button>
+  <button class="p big" id="pCard">🟥 赤いカード（バーコード付き）</button>
+  <label class="chk"><input type="checkbox" id="pCard2" checked> カードは2枚ずつ（本体貼付け用・店保管用）</label>
+  <div class="hint">赤いカードは、いま画面に出ている商品すべてが対象です。特定の商品だけ出す場合は、先に検索や絞り込みをしてください。</div>
+ </div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 設定 -->
+<div class="modal" id="mSet"><div class="box">
+ <h2>設定</h2>
+ <div class="f">
+  <label>GAS ウェブアプリURL（空欄＝この端末だけの試用モード）<input id="sApi" placeholder="https://script.google.com/macros/s/…/exec"></label>
+  <label>合言葉（GAS側の API_TOKEN と同じもの）<input id="sToken"></label>
+  <label>操作者名（付箋・履歴に残ります）<input id="sUser"></label>
+  <label>CSVから商品をまとめて取り込む<input type="file" id="sCsv" accept=".csv,text/csv"></label>
+  <div class="hint">CSVの1行目は見出し。使える見出し：ID／機種（商品名）／号機／型番／カテゴリ／メーカー／状態／貸出先／貸出日／返却期限／担当者（担当営業）／配達担当（運んだ人）／場所／写真。号機は「①」が名前の末尾にあれば自動で分けます。</div>
+ </div>
+ <div class="row"><button class="d" id="sReset" style="display:none">試用データを初期化</button><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="sSave">保存</button></div>
+</div></div>
+
+<div id="printArea"></div>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
+const CATS_DEFAULT = ['トイレ','シャワーチェア','浴槽台','入浴手すり','補高便座','車いす','歩行器','特殊寝台','その他'];
+const ICON = {'トイレ':'🚽','シャワーチェア':'🪑','浴槽台':'🛁','入浴手すり':'🪜','補高便座':'🚽','車いす':'♿','歩行器':'🦯','特殊寝台':'🛏'};
+const DEFAULT_DAYS = 7;   // 返却予定日の自動値（貸出日＋7日）
+const CIRC = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+
+/* ---- 保存（localStorageが使えない環境ではメモリのみ） ---- */
+const mem = {};
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] ?? null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k]=v; } }
+};
+const S = {
+  api: store.get('dm_api') || '', token: store.get('dm_token') || '', user: store.get('dm_user') || '',
+  items: [], staff: [], view:'tile', dir:1, chip:'', editingId:null, lendId:null, resvId:null, photo:null,
+  group: store.get('dm_group')==='1', lastStaff: store.get('dm_staff') || '', lastDriver: store.get('dm_driver') || ''
+};
+
+/* ---- ユーティリティ ---- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const nowStr = () => { const d=new Date(); return ymd(d)+` ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const todayMid = () => { const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); };
+const addDays = (s,n) => { const [y,m,d]=s.split('-').map(Number); return ymd(new Date(y,m-1,d+n)); };
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(()=>t.style.display='none',2800); }
+function daysLeft(due){ if(!due) return null; const [y,m,d]=due.split('-').map(Number); return Math.round((new Date(y,m-1,d)-todayMid())/86400000); }
+const goki = it => { const n=Number(it['号機']); return n ? (CIRC[n-1] || '#'+n) : ''; };
+const dispName = it => (it['機種']||'') + (goki(it) ? ' '+goki(it) : '');
+const memos = it => { try { const a=JSON.parse(it['メモ']||'[]'); return Array.isArray(a)?a:[]; } catch(e){ return []; } };
+const icon = it => ICON[it['カテゴリ']] || '📦';
+function derive(it){
+  const diff = it['状態']==='貸出中' ? daysLeft(it['返却期限']) : null;
+  return {diff, eff: (diff!==null && diff<0) ? '期限超過' : it['状態']};
+}
+function photoHTML(it, cls){
+  return it['写真'] ? `<img src="${esc(it['写真'])}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'em',textContent:'${icon(it)}'}))">`
+                    : `<span class="em">${icon(it)}</span>`;
+}
+
+/* ---- データ層（GAS or ローカル） ---- */
+function seed(){
+  const t = ymd(todayMid()), P = (n)=>addDays(t,n);
+  const mk = (id,name,no,model,cat,maker) => ({'ID':id,'機種':name,'号機':no,'型番':model,'カテゴリ':cat,'メーカー':maker,'状態':'在庫','貸出先':'','貸出日':'','返却期限':'','担当者':'','配達担当':'','予約者':'','予約日':'','場所':'店','メモ':'','写真':'','更新日時':nowStr()});
+  const a = [
+    mk('D0001','FX-CP ちびくまん 補高スペーサー無し',1,'533554','トイレ','アロン化成'),
+    mk('D0002','FX-CP ちびくまん 補高スペーサー無し',2,'533554','トイレ','アロン化成'),
+    mk('D0003','FX-CP ちびくまん 補高スペーサー無し',3,'533554','トイレ','アロン化成'),
+    mk('D0004','FX-CP ちびくまん 補高スペーサー無し',4,'533554','トイレ','アロン化成'),
+    mk('D0005','ラフィーネ前後傾斜脚ゴム無し ソフト便座 ミスティパープル',1,'PN-L30200V','トイレ','パナソニック'),
+    mk('D0006','シャワーチェア［ユクリア］ミドルSPおりたたみN',1,'','シャワーチェア','パナソニック'),
+    mk('D0007','ジャスト 16-26',1,'536-555','浴槽台','アロン化成'),
+    mk('D0008','ジャスト 16-26',2,'536-555','浴槽台','アロン化成'),
+    mk('D0009','ジャスト12-20',1,'','浴槽台','アロン化成'),
+    mk('D0010','UST-130',1,'','入浴手すり','アロン化成'),
+    mk('D0011','補高便座やわらか＃3',1,'','補高便座','アロン化成')
+  ];
+  Object.assign(a[0],{'状態':'貸出中','貸出先':'（サンプル）山田様宅','貸出日':P(-7),'返却期限':P(0),'担当者':'佐藤','配達担当':'佐藤'});
+  Object.assign(a[1],{'状態':'貸出中','貸出先':'（サンプル）○○居宅介護支援','貸出日':P(-12),'返却期限':P(-5),'担当者':'山田','配達担当':'鈴木（配達）'});
+  Object.assign(a[2],{'状態':'予約中','予約者':'（サンプル）鈴木様','予約日':P(3),'メモ':JSON.stringify([{d:P(-1),t:'退院日に合わせて、TELしてから',w:'事務'}])});
+  Object.assign(a[6],{'状態':'貸出中','貸出先':'（サンプル）田中様宅','貸出日':P(-2),'返却期限':P(5),'担当者':'山田','配達担当':'山田'});
+  return a;
+}
+const local = {
+  load(){ try{ const j=JSON.parse(store.get('dm_items')); if(Array.isArray(j)) return j; }catch(e){} const s=seed(); this.save(s); return s; },
+  save(a){ store.set('dm_items', JSON.stringify(a)); }
+};
+function addMemo(it, text, who){
+  if (!text) return;
+  const a = memos(it); a.push({d:ymd(todayMid()), t:text, w:who||''}); it['メモ'] = JSON.stringify(a);
+}
+async function api(action, payload={}){
+  if (!S.api) {
+    let a = local.load();
+    const i = a.findIndex(x => x['ID']===payload.id || (payload.item && x['ID']===payload.item['ID']));
+    if (action==='save'){ const it={...payload.item,'更新日時':nowStr()}; if(i<0) a.push(it); else a[i]=it; }
+    else if (action==='lend'){
+      Object.assign(a[i],{'状態':'貸出中','貸出先':payload.dest,'貸出日':payload.from,'返却期限':payload.due||addDays(payload.from,DEFAULT_DAYS),'担当者':payload.staff,'配達担当':payload.driver||'','予約者':'','予約日':'','更新日時':nowStr()});
+      addMemo(a[i], payload.note, payload.user||payload.staff);
+    }
+    else if (action==='return'){ Object.assign(a[i],{'状態':'在庫','貸出先':'','貸出日':'','返却期限':'','更新日時':nowStr()}); }
+    else if (action==='delete'){ if(i>=0) a.splice(i,1); }
+    else if (action==='photo'){ return {ok:true, url:payload.dataUrl}; }
+    else if (action==='import'){ payload.items.forEach(n => { const k=a.findIndex(x=>x['ID']===n['ID']); n['更新日時']=nowStr(); if(k<0) a.push(n); else a[k]=n; }); }
+    else if (action==='lendBulk'){
+      payload.ids.forEach(id => { const k=a.findIndex(x=>x['ID']===id); if(k<0) return;
+        Object.assign(a[k],{'状態':'貸出中','貸出先':payload.dest,'貸出日':payload.from,'返却期限':payload.due||addDays(payload.from,DEFAULT_DAYS),'担当者':payload.staff,'配達担当':payload.driver||'','予約者':'','予約日':'','更新日時':nowStr()});
+        addMemo(a[k], payload.note, payload.user||payload.staff);
+      });
+    }
+    else if (action==='returnBulk'){
+      payload.ids.forEach(id => { const k=a.findIndex(x=>x['ID']===id); if(k<0) return;
+        Object.assign(a[k],{'状態':'在庫','貸出先':'','貸出日':'','返却期限':'','更新日時':nowStr()});
+      });
+    }
+    local.save(a);
+    return {ok:true, items:a, staff:[...new Set(a.map(x=>x['担当者']).filter(Boolean))]};
+  }
+  if (action==='list'){
+    const r = await fetch(`${S.api}?action=list&token=${encodeURIComponent(S.token)}`);
+    const j = await r.json(); if(!j.ok) throw new Error(j.error); return j;
+  }
+  const body = {action, token:S.token, user:S.user, ...payload}; delete body.dataUrl;
+  const r = await fetch(S.api, {method:'POST', body:JSON.stringify(body)});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error||'通信エラー'); return j;
+}
+async function run(action, payload, okMsg){
+  try { const j = await api(action, payload); apply(j); if(okMsg) toast(okMsg); return j; }
+  catch(e){ toast('エラー: '+e.message); return null; }
+}
+function apply(j){
+  if (j.items) S.items = j.items;
+  if (j.staff) S.staff = j.staff;
+  refreshLists(); render();
+  const g = $('mGroup').classList.contains('on') && S.openGroup; if (g) openGroup(S.openGroup, true);
+}
+async function reload(){ try { apply(await api('list')); } catch(e){ toast('読込エラー: '+e.message); } }
+
+/* ---- 絞り込み・ソート ---- */
+function filtered(){
+  const q = $('q').value.trim().toLowerCase(), cat = $('fCat').value, st = $('fStaff').value;
+  let a = S.items.filter(it => {
+    const d = derive(it);
+    if (S.chip==='over' && d.eff!=='期限超過') return false;
+    if (S.chip && S.chip!=='over' && it['状態']!==S.chip) return false;
+    if (cat && it['カテゴリ']!==cat) return false;
+    if (st && it['担当者']!==st) return false;
+    if (q && !['ID','機種','型番','メーカー','貸出先','予約者','担当者','場所','メモ'].some(k => String(it[k]||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const key = $('sortKey').value, dir = S.dir;
+  const val = it => {
+    switch(key){
+      case 'due': return it['状態']==='貸出中' && it['返却期限'] ? it['返却期限'] : null;
+      case 'name': return dispName(it); case 'id': return it['ID'];
+      case 'cat': return String(it['カテゴリ']||''); case 'status': return STATUSES.indexOf(it['状態']);
+      case 'upd': return it['更新日時']||'';
+    }
+  };
+  a.sort((x,y) => {
+    const vx=val(x), vy=val(y);
+    if (vx===null && vy===null) return String(x['ID']).localeCompare(String(y['ID']));
+    if (vx===null) return 1; if (vy===null) return -1;
+    return (typeof vx==='number' ? vx-vy : String(vx).localeCompare(String(vy),'ja',{numeric:true})) * dir;
+  });
+  return a;
+}
+function groupOf(list){
+  const m = new Map();
+  list.forEach(it => { const k = it['機種']||it['ID']; if(!m.has(k)) m.set(k,[]); m.get(k).push(it); });
+  return [...m.entries()].map(([k,units]) => {
+    const c = {在庫:0,貸出中:0,予約中:0,他:0};
+    units.forEach(u => { if(c[u['状態']]!==undefined) c[u['状態']]++; else c.他++; });
+    return {key:k, units, c, first:units.find(u=>u['写真'])||units[0]};
+  });
+}
+
+/* ---- 描画 ---- */
+function renderChips(){
+  const c = {all:S.items.length, 在庫:0, 貸出中:0, 予約中:0, over:0, メンテ中:0};
+  S.items.forEach(it => { const d=derive(it); if(c[it['状態']]!==undefined) c[it['状態']]++; if(d.eff==='期限超過') c.over++; });
+  const defs = [['all','全体'],['在庫','在庫あり'],['貸出中','貸出中'],['予約中','予約中'],['over','期限超過'],['メンテ中','メンテ中']];
+  $('chips').innerHTML = defs.map(([k,l]) => `<div class="chip ${k==='over'?'over':''} ${((S.chip||'all')===k)?'on':''}" data-c="${k}"><b>${c[k]}</b><small>${l}</small></div>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(e => e.onclick = () => { S.chip = e.dataset.c==='all' ? '' : e.dataset.c; render(); });
+}
+function subText(it){
+  const d = derive(it), n = memos(it).length;
+  if (it['状態']==='貸出中'){
+    const t = d.diff===null ? '返却予定日 未設定' : d.diff<0 ? `<b style="color:var(--over)">${-d.diff}日超過</b>` : d.diff===0 ? '<b style="color:var(--over)">本日が返却予定日</b>' : `あと${d.diff}日`;
+    return `<b>${esc(it['貸出先'])}</b><br>返却予定 ${esc(it['返却期限']||'-')}（${t}）`;
+  }
+  if (it['状態']==='予約中') return `<b>${esc(it['予約者'])}</b><br>お渡し予定 ${esc(it['予約日']||'-')}`;
+  if (it['状態']==='メンテ中') return 'メンテナンス中';
+  return esc(it['場所']||'');
+}
+function tileHTML(it){
+  const d = derive(it), n = memos(it).length, dim = it['状態']==='貸出中';
+  return `<div class="tile s-${d.eff} ${dim?'dim':''}" data-id="${esc(it['ID'])}"><div class="ph">${photoHTML(it)}
+    ${d.eff!=='在庫'?`<span class="tag">${d.eff==='貸出中'?'⇥ ':''}${d.eff}</span>`:''}
+    ${n?`<span class="note">📝${n>9?'9+':n}</span>`:''}</div>
+    <div class="info"><div class="nm">${esc(dispName(it))}</div><div class="sub">${subText(it)}</div></div></div>`;
+}
+function render(){
+  renderChips();
+  const a = filtered(), box = $('content');
+  if (S.view==='sum') return renderSum(box);
+  if (!a.length){ box.innerHTML = '<div class="empty">該当する商品がありません</div>'; return; }
+  if (S.group){
+    const gs = groupOf(a);
+    if (S.view==='tile'){
+      box.innerHTML = '<div class="tiles">' + gs.map((g,i) => {
+        const tot=g.units.length, over=g.units.some(u=>derive(u).eff==='期限超過');
+        const stock=g.c['在庫'];
+        return `<div class="tile ${stock===0?'dim':''}" data-g="${i}"><div class="ph">${photoHTML(g.first)}
+          <span class="tag" style="--c:${stock===0?'var(--del)':'var(--ok)'}">在庫 ${stock}/${tot}台</span>
+          ${over?'<span class="note" style="background:#ffd3d3;color:#8a1515">⚠</span>':''}</div>
+          <div class="info"><div class="nm">${esc(g.key)}</div>
+          <div class="sub">${g.c['貸出中']?`貸出中 ${g.c['貸出中']}台　`:''}${g.c['予約中']?`予約中 ${g.c['予約中']}台`:''}${!g.c['貸出中']&&!g.c['予約中']?esc(g.first['型番']||''):''}</div></div></div>`; }).join('') + '</div>';
+      box.querySelectorAll('.tile').forEach(e => e.onclick = () => openGroup(gs[+e.dataset.g].key));
+    } else {
+      box.innerHTML = '<div class="wrap"><table><thead><tr><th>機種</th><th>カテゴリ</th><th>型番</th><th>総数</th><th>在庫</th><th>貸出中</th><th>予約中</th></tr></thead><tbody>' +
+        gs.map((g,i) => `<tr data-g="${i}"><td>${esc(g.key)}</td><td>${esc(g.first['カテゴリ'])}</td><td>${esc(g.first['型番'])}</td><td>${g.units.length}</td><td>${g.c['在庫']}</td><td>${g.c['貸出中']}</td><td>${g.c['予約中']}</td></tr>`).join('') + '</tbody></table></div>';
+      box.querySelectorAll('tbody tr').forEach(e => e.onclick = () => openGroup(gs[+e.dataset.g].key));
+    }
+    return;
+  }
+  if (S.view==='tile'){
+    box.innerHTML = '<div class="tiles">' + a.map(tileHTML).join('') + '</div>';
+    box.querySelectorAll('.tile').forEach(e => e.onclick = () => openDetail(e.dataset.id));
+  } else {
+    box.innerHTML = '<div class="wrap">' + stockTable(a) + '</div>';
+    box.querySelectorAll('tbody tr').forEach(e => e.onclick = () => openDetail(e.dataset.id));
+  }
+}
+function stockTable(a){
+  return '<table><thead><tr><th>状態</th><th>ID</th><th>機種</th><th>号機</th><th>型番</th><th>貸出先・予約者</th><th>返却予定</th><th>担当</th></tr></thead><tbody>' +
+    a.map(it => { const d=derive(it);
+      return `<tr data-id="${esc(it['ID'])}"><td><span class="badge s-${d.eff}">${d.eff}</span></td><td>${esc(it['ID'])}</td><td>${esc(it['機種'])}</td><td>${esc(goki(it))}</td><td>${esc(it['型番'])}</td><td>${esc(it['状態']==='予約中'?it['予約者']:it['貸出先'])}</td><td>${esc(it['返却期限'])}</td><td>${esc(it['担当者'])}</td></tr>`; }).join('') + '</tbody></table>';
+}
+function renderSum(box){
+  const cats = [...new Set(S.items.map(i => i['カテゴリ']||'その他'))];
+  const rows = cats.map(c => {
+    const l = S.items.filter(i => (i['カテゴリ']||'その他')===c);
+    const n = s => l.filter(i => i['状態']===s).length;
+    return [c, l.length, n('在庫'), n('貸出中'), l.filter(i => derive(i).eff==='期限超過').length, n('予約中'), n('メンテ中')];
+  });
+  const tot = rows.reduce((t,r) => r.map((v,i) => i ? (t[i]||0)+v : '合計'), []);
+  box.innerHTML = '<div class="wrap"><table><thead><tr><th>カテゴリ</th><th>総数</th><th>在庫</th><th>貸出中</th><th>うち超過</th><th>予約中</th><th>メンテ中</th></tr></thead><tbody>' +
+    rows.concat(rows.length?[tot]:[]).map(r => `<tr style="cursor:default;${r[0]==='合計'?'font-weight:700;background:#eef2f5':''}">${r.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody></table></div>';
+}
+function refreshLists(){
+  const names = [...new Set([...S.staff, ...S.items.map(i => i['担当者']).filter(Boolean)])];
+  const cur = $('fStaff').value;
+  $('fStaff').innerHTML = '<option value="">担当：すべて</option>' + names.map(n => `<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
+  $('staffList').innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
+  const drivers = [...new Set([...names, ...S.items.map(i => i['配達担当']).filter(Boolean)])];
+  $('driverList').innerHTML = drivers.map(n => `<option value="${esc(n)}">`).join('');
+  const cats = [...new Set([...CATS_DEFAULT, ...S.items.map(i => i['カテゴリ']).filter(Boolean)])];
+  const cc = $('fCat').value;
+  $('fCat').innerHTML = '<option value="">カテゴリ：すべて</option>' + [...new Set(S.items.map(i => i['カテゴリ']).filter(Boolean))].map(c => `<option ${c===cc?'selected':''}>${esc(c)}</option>`).join('');
+  $('catList').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+  const ac = $('auCat').value;
+  $('auCat').innerHTML = '<option value="">すべて</option>' + [...new Set(S.items.map(i => i['カテゴリ']).filter(Boolean))].map(c => `<option ${c===ac?'selected':''}>${esc(c)}</option>`).join('');
+}
+
+/* ---- モーダル共通 ---- */
+function open_(id){ $(id).classList.add('on'); }
+function close_(id){ $(id).classList.remove('on'); if(id==='mScan'||id==='mAudit'||id==='mDep'||id==='mBulk'){ stopScan(); kbHandler = handleCode; } if(id==='mGroup') S.openGroup=null; }
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => close_(b.closest('.modal').id));
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('mousedown', e => { if(e.target===m) close_(m.id); }));
+
+/* ---- バーコード ---- */
+function barcodeSVG(text, h=40, w=2){
+  try {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    JsBarcode(svg, String(text), {format:'CODE128', width:w, height:h, displayValue:false, margin:0});
+    svg.setAttribute('preserveAspectRatio','none');
+    return svg;
+  } catch(e){ const s=document.createElement('span'); s.textContent='（バーコード生成ライブラリ未読込）'; return s; }
+}
+
+/* ---- 詳細 ---- */
+function openDetail(id, keepGroup){
+  const it = S.items.find(x => String(x['ID'])===String(id)); if(!it) return toast('登録なし: '+id);
+  const d = derive(it), ms = memos(it);
+  const st = it['状態'];
+  const acts = st==='在庫' ? '<button class="p big" id="dLend">貸出（納品）</button><button class="r big" id="dResv">予約</button>'
+    : st==='予約中' ? '<button class="p big" id="dLend">貸出（納品）</button><button class="g big" id="dUnresv">予約を解除</button>'
+    : st==='貸出中' ? '<button class="p big" id="dRet">返却する</button>'
+    : '<button class="p big" id="dBack">在庫に戻す</button>';
+  $('detailBox').innerHTML = `<h2>${esc(dispName(it))} <span class="badge s-${d.eff}">${d.eff}</span></h2>
+   <div class="dph">${photoHTML(it)}</div>
+   <div class="row" style="margin:0 0 6px">${acts}</div>
+   <dl><dt>ID</dt><dd>${esc(it['ID'])}</dd><dt>カテゴリ</dt><dd>${esc(it['カテゴリ'])}</dd><dt>型番</dt><dd>${esc(it['型番'])}　${esc(it['メーカー'])}</dd><dt>保管場所</dt><dd>${esc(it['場所'])}</dd>
+   ${st==='貸出中' ? `<dt>貸出先</dt><dd><b>${esc(it['貸出先'])}</b></dd><dt>貸出日</dt><dd>${esc(it['貸出日'])}</dd><dt>返却予定</dt><dd>${esc(it['返却期限']||'未設定')}${d.diff!==null&&d.diff<0?` <b style="color:var(--over)">(${-d.diff}日超過)</b>`:''}</dd><dt>担当営業</dt><dd>${esc(it['担当者'])}</dd><dt>配達担当</dt><dd>${esc(it['配達担当']||'-')}</dd>`:''}
+   ${st==='予約中' ? `<dt>予約者</dt><dd><b>${esc(it['予約者'])}</b></dd><dt>お渡し予定</dt><dd>${esc(it['予約日'])}</dd>`:''}</dl>
+   <div class="bcv" id="dbc"></div><div style="text-align:center;font-size:.85rem;color:var(--sub)">${esc(it['ID'])}</div>
+   <h3 style="margin:12px 0 4px;font-size:1rem">📝 メモ（付箋）</h3>
+   <div id="dMemos">${ms.map((m,i) => `<div class="stick"><small>${esc(m.d)} ${esc(m.w||'')}</small>${esc(m.t)}<button class="x" data-mi="${i}">×</button></div>`).join('') || '<div class="hint">まだありません</div>'}</div>
+   <div class="row" style="margin-top:6px"><input id="dMemoIn" placeholder="付箋を追加" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="g" id="dMemoAdd">追加</button></div>
+   <div class="row"><button class="g" id="dEdit">編集</button><button class="g" id="dLabel">🏷 ラベル</button><span class="sp"></span><button class="g" data-close>閉じる</button></div>`;
+  $('dbc').appendChild(barcodeSVG(it['ID'], 50, 2));
+  const svg = $('dbc').firstChild; if(svg.tagName==='svg'){ svg.style.width='220px'; svg.style.height='50px'; }
+  $('detailBox').querySelector('[data-close]').onclick = () => close_('mDetail');
+  if ($('dLend')) $('dLend').onclick = () => { close_('mDetail'); openLend(it); };
+  if ($('dResv')) $('dResv').onclick = () => { close_('mDetail'); openResv(it); };
+  if ($('dUnresv')) $('dUnresv').onclick = async () => { await saveItem({...it,'状態':'在庫','予約者':'','予約日':''}, '予約を解除しました'); close_('mDetail'); };
+  if ($('dRet')) $('dRet').onclick = async () => { if(await run('return',{id:it['ID']},'返却を記録しました')) close_('mDetail'); };
+  if ($('dBack')) $('dBack').onclick = async () => { await saveItem({...it,'状態':'在庫'}, '在庫に戻しました'); close_('mDetail'); };
+  $('dEdit').onclick = () => { close_('mDetail'); openEdit(it); };
+  $('dLabel').onclick = () => { close_('mDetail'); openLabel([it['ID']]); };
+  $('dMemoAdd').onclick = async () => {
+    const v = $('dMemoIn').value.trim(); if(!v) return;
+    const c = {...it}; addMemo(c, v, S.user); await saveItem(c); openDetail(id);
+  };
+  $('detailBox').querySelectorAll('.stick .x').forEach(b => b.onclick = async () => {
+    const c = {...it}, a = memos(c); a.splice(+b.dataset.mi,1); c['メモ'] = JSON.stringify(a); await saveItem(c); openDetail(id);
+  });
+  open_('mDetail');
+}
+async function saveItem(item, msg){ return run('save',{item}, msg); }
+
+/* ---- 機種まとめ ---- */
+function openGroup(key, quiet){
+  S.openGroup = key;
+  const units = S.items.filter(i => (i['機種']||i['ID'])===key).sort((a,b)=>(Number(a['号機'])||0)-(Number(b['号機'])||0) || String(a['ID']).localeCompare(String(b['ID'])));
+  $('groupBox').innerHTML = `<h2>${esc(key)}</h2><div class="hint">${esc(units[0]?.['型番']||'')}　${units.length}台</div>` +
+    units.map(u => { const d=derive(u), st=u['状態'];
+      const btn = st==='貸出中' ? `<button class="p" data-ret="${esc(u['ID'])}">返却</button>` : (st==='在庫'||st==='予約中') ? `<button class="p" data-lend="${esc(u['ID'])}">貸出</button>` : '';
+      return `<div class="gunit"><div class="no">${esc(goki(u)||'−')}</div><div><span class="badge s-${d.eff}">${d.eff}</span> <a href="#" data-det="${esc(u['ID'])}" style="color:var(--pri)">詳細</a><div style="font-size:.85rem;color:var(--sub);margin-top:2px">${subText(u)}</div></div><div>${btn}</div></div>`; }).join('') +
+    '<div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>';
+  $('groupBox').querySelector('[data-close]').onclick = () => close_('mGroup');
+  $('groupBox').querySelectorAll('[data-det]').forEach(a => a.onclick = e => { e.preventDefault(); close_('mGroup'); openDetail(a.dataset.det); });
+  $('groupBox').querySelectorAll('[data-lend]').forEach(b => b.onclick = () => { close_('mGroup'); openLend(S.items.find(i=>i['ID']===b.dataset.lend)); });
+  $('groupBox').querySelectorAll('[data-ret]').forEach(b => b.onclick = async () => { await run('return',{id:b.dataset.ret},'返却を記録しました'); });
+  if (!quiet) open_('mGroup');
+}
+
+/* ---- 編集 ---- */
+function nextId(){
+  const nums = S.items.map(i => (String(i['ID']).match(/^D(\d+)$/)||[])[1]).filter(Boolean).map(Number);
+  return 'D' + String((nums.length?Math.max(...nums):0)+1).padStart(4,'0');
+}
+function openEdit(it, presetId){
+  S.editingId = it ? it['ID'] : null; S.photo = null;
+  $('editTitle').textContent = it ? '商品編集' : '商品登録';
+  $('eId').value = it ? it['ID'] : (presetId || nextId()); $('eId').disabled = !!it;
+  $('eNo').value = it?.['号機'] || ''; $('eName').value = it?.['機種'] || '';
+  $('eModel').value = it?.['型番'] || ''; $('eMaker').value = it?.['メーカー'] || '';
+  $('eCat').value = it?.['カテゴリ'] || ''; $('ePlace').value = it?.['場所'] || '店';
+  $('eStatus').value = it?.['状態'] || '在庫';
+  const pv = $('ePrev'); if (it?.['写真']){ pv.src = it['写真']; pv.style.display=''; } else { pv.removeAttribute('src'); pv.style.display='none'; }
+  $('eDel').style.display = it ? '' : 'none';
+  open_('mEdit'); if(!it) $('eName').focus();
+}
+function resizeImage(file, max=800, q=.8){
+  return new Promise((res,rej) => { const r = new FileReader();
+    r.onload = () => { const im = new Image();
+      im.onload = () => { const k = Math.min(1, max/Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width*k); c.height = Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); res(c.toDataURL('image/jpeg', q)); };
+      im.onerror = rej; im.src = r.result; };
+    r.onerror = rej; r.readAsDataURL(file); });
+}
+async function onPhoto(e){
+  const f = e.target.files[0]; if(!f) return;
+  try { S.photo = await resizeImage(f, S.api ? 800 : 420, S.api ? .8 : .7); $('ePrev').src = S.photo; $('ePrev').style.display=''; }
+  catch(err){ toast('写真を読み込めませんでした'); }
+  e.target.value = '';
+}
+$('ePhotoCam').onclick = () => $('ePhotoF1').click(); $('ePhotoPick').onclick = () => $('ePhotoF2').click();
+$('ePhotoF1').onchange = onPhoto; $('ePhotoF2').onchange = onPhoto;
+$('eSave').onclick = async () => {
+  const id = $('eId').value.trim(), name = $('eName').value.trim();
+  if (!id || !name) return toast('IDと機種名は必須です');
+  if (!S.editingId && S.items.some(i => i['ID']===id)) return toast('そのIDは既に登録されています');
+  const old = S.items.find(i => i['ID']===S.editingId) || {};
+  const item = {...old, 'ID':id,'機種':name,'号機':$('eNo').value.trim(),'型番':$('eModel').value.trim(),'メーカー':$('eMaker').value.trim(),
+    'カテゴリ':$('eCat').value.trim()||'その他','場所':$('ePlace').value.trim(),'状態':$('eStatus').value};
+  if (item['状態']!=='貸出中'){ item['貸出先']='';item['貸出日']='';item['返却期限']=''; }
+  if (item['状態']!=='予約中'){ item['予約者']='';item['予約日']=''; }
+  if (S.photo){
+    try {
+      const j = await api('photo', {id, data:S.photo.split(',')[1], mime:'image/jpeg', dataUrl:S.photo});
+      item['写真'] = j.url;
+    } catch(e){ return toast('写真の保存に失敗: '+e.message); }
+  }
+  if (await saveItem(item,'保存しました')) close_('mEdit');
+};
+$('eDel').onclick = async () => {
+  if (!confirm(`${S.editingId} を削除します。よろしいですか？`)) return;
+  if (await run('delete',{id:S.editingId},'削除しました')) close_('mEdit');
+};
+
+/* ---- 貸出（返却予定日は貸出日の7日後を自動） ---- */
+let dueTouched = false;
+function openLend(it){
+  S.lendId = it['ID']; $('lendName').textContent = `${dispName(it)}（${it['ID']}）`;
+  const t = ymd(todayMid());
+  $('lDest').value = it['予約者'] || ''; $('lFrom').value = t; $('lDue').value = addDays(t, DEFAULT_DAYS); dueTouched = false;
+  $('lStaff').value = S.lastStaff || S.user || ''; $('lDriver').value = S.lastDriver || ''; $('lNote').value = '';
+  open_('mLend'); $('lDest').focus();
+}
+$('lFrom').onchange = () => { if(!dueTouched && $('lFrom').value) $('lDue').value = addDays($('lFrom').value, DEFAULT_DAYS); };
+$('lDue').onchange = () => { dueTouched = true; };
+$('lOk').onclick = async () => {
+  const dest=$('lDest').value.trim(), from=$('lFrom').value, due=$('lDue').value, staff=$('lStaff').value.trim(), driver=$('lDriver').value.trim(), note=$('lNote').value.trim();
+  if (!dest||!staff||!from) return toast('貸出先・貸出日・担当営業は必須です');
+  if (!due) return toast('返却予定日を入れてください');
+  if (due < from) return toast('返却予定日が貸出日より前です');
+  S.lastStaff = staff; store.set('dm_staff', staff); S.lastDriver = driver; store.set('dm_driver', driver);
+  if (await run('lend',{id:S.lendId,dest,from,due,staff,driver,note},'貸出を記録しました')) close_('mLend');
+};
+
+/* ---- 予約 ---- */
+function openResv(it){
+  S.resvId = it['ID']; $('resvName').textContent = `${dispName(it)}（${it['ID']}）`;
+  $('rName').value=''; $('rDate').value=''; $('rNote').value=''; open_('mResv'); $('rName').focus();
+}
+$('rOk').onclick = async () => {
+  const name = $('rName').value.trim(); if(!name) return toast('予約者を入れてください');
+  const it = {...S.items.find(i => i['ID']===S.resvId), '状態':'予約中','予約者':name,'予約日':$('rDate').value};
+  addMemo(it, $('rNote').value.trim(), S.user);
+  if (await saveItem(it,'予約を記録しました')) close_('mResv');
+};
+
+/* ---- バーコード読取（カメラ／USB・Bluetoothリーダー） ---- */
+let scanner = null;
+function stopScan(){
+  if (!scanner) return;
+  const s = scanner; scanner = null;
+  try { const r = s.stop(); if (r && r.then) r.then(() => { try { s.clear(); } catch(e){} }).catch(() => {}); }
+  catch(e){}
+}
+function startScan(readerDivId, onCode){
+  stopScan();
+  if (typeof Html5Qrcode === 'undefined') return toast('読取ライブラリを読み込めません（通信を確認）');
+  const F = window.Html5QrcodeSupportedFormats;
+  scanner = new Html5Qrcode(readerDivId, F ? {formatsToSupport:[F.CODE_128, F.QR_CODE], useBarCodeDetectorIfSupported:true, verbose:false} : undefined);
+  scanner.start({facingMode:'environment'}, {fps:12, qrbox:(w,h) => ({width:Math.floor(w*.85), height:Math.floor(Math.min(h*.6, w*.45))})}, txt => onCode(txt), () => {})
+    .catch(() => toast('カメラを起動できません。ID手入力をご利用ください'));
+}
+function codeToId(text){ let id = String(text).trim(); try { const u = new URL(id); id = u.searchParams.get('id') || id; } catch(e){} return id; }
+function handleCode(text){
+  const id = codeToId(text);
+  close_('mScan');
+  const it = S.items.find(x => String(x['ID'])===id);
+  if (it) openDetail(id);
+  else if (confirm(`ID「${id}」は未登録です。新規登録しますか？`)) openEdit(null, id);
+}
+let kbHandler = handleCode;   // 開いているモーダルによって切り替える（棚卸・出発チェック中はそちらへ）
+$('bScan').onclick = () => { open_('mScan'); kbHandler = handleCode; startScan('reader', handleCode); };
+$('manualGo').onclick = () => { const v=$('manualId').value.trim(); if(v){ $('manualId').value=''; handleCode(v); } };
+$('manualId').onkeydown = e => { if(e.key==='Enter') $('manualGo').click(); };
+// バーコードリーダー（キーボード入力タイプ）：入力欄以外で高速入力＋Enterを受けたら、今開いている画面へ渡す
+let kb = '', kbT = 0;
+document.addEventListener('keydown', e => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const now = Date.now(); if (now - kbT > 120) kb = ''; kbT = now;
+  if (e.key === 'Enter'){ if (kb.length >= 3){ const v = kb; kb=''; kbHandler(v); } kb=''; }
+  else if (e.key.length === 1) kb += e.key;
+});
+
+/* ---- 棚卸（在庫確認）：システム上「在庫」のはずの商品を実際にスキャンして照合 ---- */
+let auTarget = [], auFound = new Map();   // id -> {type:'ok'|'mismatch'|'unknown', it}
+$('bAudit').onclick = () => {
+  auTarget = []; auFound = new Map(); $('auBody').style.display = 'none'; $('auReset').style.display = 'none';
+  open_('mAudit');
+};
+$('auStart').onclick = () => {
+  const place = $('auPlace').value, cat = $('auCat').value;
+  auTarget = S.items.filter(it => it['状態']==='在庫' && (!place || it['場所']===place) && (!cat || it['カテゴリ']===cat));
+  if (!auTarget.length) return toast('対象の商品がありません（絞り込みを見直してください）');
+  auFound = new Map();
+  $('auBody').style.display = ''; $('auReset').style.display = '';
+  auRender();
+  kbHandler = auOnCode; startScan('readerAudit', auOnCode);
+};
+function auOnCode(text){
+  const id = codeToId(text), it = S.items.find(x => String(x['ID'])===id);
+  if (!it) auFound.set(id, {type:'unknown'});
+  else if (!auTarget.some(t => t['ID']===id)) auFound.set(id, {type:'mismatch', it});
+  else auFound.set(id, {type:'ok', it});
+  auRender();
+  toast(it ? `確認: ${dispName(it)}` : `未登録ID: ${id}`);
+}
+$('auManualGo').onclick = () => { const v=$('auManual').value.trim(); if(v){ $('auManual').value=''; auOnCode(v); } };
+$('auManual').onkeydown = e => { if(e.key==='Enter') $('auManualGo').click(); };
+function auMissing(){ const okIds = new Set([...auFound.entries()].filter(([,v])=>v.type==='ok').map(([k])=>k)); return auTarget.filter(t => !okIds.has(t['ID'])); }
+function auRender(){
+  const okN = [...auFound.values()].filter(v=>v.type==='ok').length;
+  const missing = auMissing();
+  const mismatch = [...auFound.entries()].filter(([,v]) => v.type==='mismatch');
+  const unknown = [...auFound.entries()].filter(([,v]) => v.type==='unknown');
+  $('auChips').innerHTML = `<div class="chip on"><b>${okN}/${auTarget.length}</b><small>確認済み</small></div>` +
+    `<div class="chip over"><b>${missing.length}</b><small>未読み取り</small></div>` +
+    (mismatch.length ? `<div class="chip" style="border-color:var(--mnt)"><b>${mismatch.length}</b><small>状態不一致</small></div>` : '') +
+    (unknown.length ? `<div class="chip" style="border-color:var(--del)"><b>${unknown.length}</b><small>未登録ID</small></div>` : '');
+  $('auLists').innerHTML =
+    (missing.length ? `<h3 style="margin:10px 0 4px;font-size:1rem;color:var(--over)">⚠ 未読み取り（記録なしで持ち出された可能性）</h3>` +
+      missing.map(it => `<div class="stick" style="background:#ffe1e1">${esc(dispName(it))}（${esc(it['ID'])}）</div>`).join('') : '') +
+    (mismatch.length ? `<h3 style="margin:10px 0 4px;font-size:1rem;color:var(--mnt)">⚠ 状態不一致（システムの記録と違う）</h3>` +
+      mismatch.map(([id,v]) => `<div class="stick" style="background:#fff1cf">${esc(dispName(v.it))}（${esc(id)}）：システム上は「${esc(v.it['状態'])}」ですが、店に見つかりました</div>`).join('') : '') +
+    (unknown.length ? `<h3 style="margin:10px 0 4px;font-size:1rem;color:var(--del)">❓ 未登録のID</h3>` +
+      unknown.map(([id]) => `<div class="stick">${esc(id)}</div>`).join('') : '');
+}
+$('auReset').onclick = () => { auTarget = []; auFound = new Map(); $('auBody').style.display = 'none'; $('auReset').style.display = 'none'; stopScan(); };
+$('auPrintMiss').onclick = () => {
+  const missing = auMissing(); if (!missing.length) return toast('未読み取りはありません');
+  printHTML(`<h3>棚卸　未読み取り一覧　${ymd(todayMid())}</h3>` + stockTable(missing), 'stock', 'size:A4 landscape;margin:10mm');
+};
+
+/* ---- まとめて持出・返却：同じお客様先への複数点や、複数点の引き取りを1回の操作で処理 ---- */
+let BULK = {mode:'lend', ids:[]}, bulkDueTouched = false;
+function bulkEligible(it){ return BULK.mode==='lend' ? (it['状態']==='在庫' || it['状態']==='予約中') : it['状態']==='貸出中'; }
+function bulkRender(){
+  $('bulkChips').innerHTML = `<div class="chip on"><b>${BULK.ids.length}</b><small>対象件数</small></div>`;
+  $('bulkList').innerHTML = BULK.ids.length ? BULK.ids.map(id => { const it = S.items.find(x => x['ID']===id);
+    return `<div class="gunit"><div class="no">${it?icon(it):'📦'}</div><div>${esc(it?dispName(it):('（削除済み）'+id))}<div style="font-size:.8rem;color:var(--sub)">${esc(id)}${(it&&BULK.mode==='return'&&it['貸出先'])?'　'+esc(it['貸出先']):''}</div></div><button class="g" data-rm="${esc(id)}">外す</button></div>`; }).join('')
+    : '<div class="hint">まだ商品がありません。検索やスキャンで追加してください。</div>';
+  $('bulkList').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { BULK.ids = BULK.ids.filter(x => x!==b.dataset.rm); bulkRender(); });
+}
+function bulkOnCode(text){
+  const id = codeToId(text), it = S.items.find(x => String(x['ID'])===id);
+  if (!it) return toast(`未登録ID: ${id}`);
+  if (BULK.ids.includes(id)) return toast(`${dispName(it)} は既にリストにあります`);
+  if (!bulkEligible(it)) return toast(`${dispName(it)} は現在「${it['状態']}」のため対象にできません`);
+  BULK.ids.push(id); bulkRender();
+  toast(`追加: ${dispName(it)}`);
+}
+$('bulkMode').querySelectorAll('button').forEach(b => b.onclick = () => {
+  BULK.mode = b.dataset.m; BULK.ids = [];
+  $('bulkMode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b));
+  $('bulkLendFields').style.display = BULK.mode==='lend' ? '' : 'none';
+  $('bulkGo').textContent = BULK.mode==='lend' ? 'まとめて持ち出す' : 'まとめて返却する';
+  bulkRender();
+});
+$('bulkQ').oninput = () => {
+  const q = $('bulkQ').value.trim().toLowerCase();
+  if (!q){ $('bulkSearch').style.display = 'none'; return; }
+  const hits = S.items.filter(it => !BULK.ids.includes(it['ID']) && bulkEligible(it) && (dispName(it)+it['ID']).toLowerCase().includes(q)).slice(0,8);
+  $('bulkSearch').style.display = hits.length ? '' : 'none';
+  $('bulkSearch').innerHTML = hits.map(it => `<label style="cursor:pointer" data-add="${esc(it['ID'])}">${esc(dispName(it))}　<small style="color:var(--sub)">${esc(it['ID'])}${(BULK.mode==='return'&&it['貸出先'])?'・'+esc(it['貸出先']):''}</small></label>`).join('');
+  $('bulkSearch').querySelectorAll('[data-add]').forEach(l => l.onclick = () => { BULK.ids.push(l.dataset.add); $('bulkQ').value=''; $('bulkSearch').style.display='none'; bulkRender(); });
+};
+$('bulkManualGo').onclick = () => { const v=$('bulkManual').value.trim(); if(v){ $('bulkManual').value=''; bulkOnCode(v); } };
+$('bulkManual').onkeydown = e => { if(e.key==='Enter') $('bulkManualGo').click(); };
+$('bulkClear').onclick = () => { if(!BULK.ids.length || confirm('リストを空にします。よろしいですか？')){ BULK.ids = []; bulkRender(); } };
+$('bFrom').onchange = () => { if(!bulkDueTouched && $('bFrom').value) $('bDue').value = addDays($('bFrom').value, DEFAULT_DAYS); };
+$('bDue').onchange = () => { bulkDueTouched = true; };
+$('bBulk').onclick = () => {
+  BULK = {mode:'lend', ids:[]}; bulkDueTouched = false;
+  $('bulkMode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.m==='lend'));
+  $('bulkLendFields').style.display = ''; $('bulkGo').textContent = 'まとめて持ち出す';
+  const t = ymd(todayMid());
+  $('bDest').value = ''; $('bFrom').value = t; $('bDue').value = addDays(t, DEFAULT_DAYS);
+  $('bStaff').value = S.lastStaff || S.user || ''; $('bDriver').value = S.lastDriver || ''; $('bNote').value = '';
+  bulkRender();
+  open_('mBulk'); kbHandler = bulkOnCode; startScan('readerBulk', bulkOnCode);
+};
+$('bulkGo').onclick = async () => {
+  if (!BULK.ids.length) return toast('対象の商品がありません');
+  if (BULK.mode==='lend'){
+    const dest=$('bDest').value.trim(), from=$('bFrom').value, due=$('bDue').value, staff=$('bStaff').value.trim(), driver=$('bDriver').value.trim(), note=$('bNote').value.trim();
+    if (!dest||!staff||!from) return toast('貸出先・貸出日・担当営業は必須です');
+    if (!due) return toast('返却予定日を入れてください');
+    if (due < from) return toast('返却予定日が貸出日より前です');
+    S.lastStaff = staff; store.set('dm_staff', staff); S.lastDriver = driver; store.set('dm_driver', driver);
+    if (await run('lendBulk', {ids:BULK.ids, dest, from, due, staff, driver, note}, `${BULK.ids.length}件を持ち出しとして記録しました`)) close_('mBulk');
+  } else {
+    if (await run('returnBulk', {ids:BULK.ids}, `${BULK.ids.length}件を返却として記録しました`)) close_('mBulk');
+  }
+};
+
+/* ---- 出発前チェック：今日の持出予定をあらかじめ登録し、出る前にスキャンで確認 ---- */
+function depLoad(){
+  let d; try { d = JSON.parse(store.get('dm_dep') || '{}'); } catch(e){ d = {}; }
+  const t = ymd(todayMid());
+  return (d && d.date === t) ? d : {date:t, ids:[], checked:[]};
+}
+function depSave(){ store.set('dm_dep', JSON.stringify(DEP)); }
+let DEP = depLoad();
+function depRender(){
+  const total = DEP.ids.length, done = DEP.checked.filter(id => DEP.ids.includes(id)).length;
+  $('depChips').innerHTML = `<div class="chip ${done===total&&total>0?'on':'over'}"><b>${done}/${total}</b><small>スキャン済み</small></div>`;
+  $('depList').innerHTML = DEP.ids.length ? DEP.ids.map(id => { const it = S.items.find(x => x['ID']===id), ok = DEP.checked.includes(id);
+    return `<div class="gunit"><div class="no">${ok?'✅':'⬜'}</div><div>${esc(it?dispName(it):('（削除済み）'+id))}<div style="font-size:.8rem;color:var(--sub)">${esc(id)}</div></div><button class="g" data-rm="${esc(id)}">外す</button></div>`; }).join('')
+    : '<div class="hint">まだ商品が追加されていません。上の検索欄から追加してください。</div>';
+  $('depList').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+    DEP.ids = DEP.ids.filter(x => x!==b.dataset.rm); DEP.checked = DEP.checked.filter(x => x!==b.dataset.rm); depSave(); depRender();
+  });
+}
+$('bDep').onclick = () => { DEP = depLoad(); open_('mDep'); depRender(); kbHandler = depOnCode; startScan('readerDep', depOnCode); };
+$('depQ').oninput = () => {
+  const q = $('depQ').value.trim().toLowerCase();
+  if (!q){ $('depSearch').style.display = 'none'; return; }
+  const hits = S.items.filter(it => !DEP.ids.includes(it['ID']) && (dispName(it)+it['ID']).toLowerCase().includes(q)).slice(0,8);
+  $('depSearch').style.display = hits.length ? '' : 'none';
+  $('depSearch').innerHTML = hits.map(it => `<label style="cursor:pointer" data-add="${esc(it['ID'])}">${esc(dispName(it))}　<small style="color:var(--sub)">${esc(it['ID'])}</small></label>`).join('');
+  $('depSearch').querySelectorAll('[data-add]').forEach(l => l.onclick = () => { DEP.ids.push(l.dataset.add); depSave(); $('depQ').value=''; $('depSearch').style.display='none'; depRender(); });
+};
+function depOnCode(text){
+  const id = codeToId(text);
+  if (!DEP.ids.includes(id)){ toast(`「${id}」は本日の予定リストにありません`); return; }
+  if (!DEP.checked.includes(id)) DEP.checked.push(id);
+  depSave(); depRender();
+  const it = S.items.find(x => x['ID']===id);
+  toast(`✅ ${it ? dispName(it) : id} を確認しました`);
+}
+$('depManualGo').onclick = () => { const v=$('depManual').value.trim(); if(v){ $('depManual').value=''; depOnCode(v); } };
+$('depManual').onkeydown = e => { if(e.key==='Enter') $('depManualGo').click(); };
+$('depClear').onclick = () => { if(confirm('本日の持出予定リストを空にします。よろしいですか？')){ DEP = {date: ymd(todayMid()), ids:[], checked:[]}; depSave(); depRender(); } };
+$('depPrint').onclick = () => {
+  if (!DEP.ids.length) return toast('リストが空です');
+  const rows = DEP.ids.map(id => S.items.find(x => x['ID']===id)).filter(Boolean);
+  printHTML(`<h3>本日の持出予定チェックリスト　${ymd(todayMid())}</h3><table><thead><tr><th>確認</th><th>ID</th><th>機種</th><th>貸出先（分かれば）</th></tr></thead><tbody>` +
+    rows.map(it => `<tr><td style="width:14mm">☐</td><td>${esc(it['ID'])}</td><td>${esc(dispName(it))}</td><td>${esc(it['貸出先']||'')}</td></tr>`).join('') + '</tbody></table>', 'stock', 'size:A4 landscape;margin:10mm');
+};
+
+/* ---- ラベル（テプラ SR5900P / 24mm幅 / 360dpi） ---- */
+const DPI = 360, PXMM = DPI/25.4;
+function shortName(it){ return (it['機種']||'').replace(/\s+/g,' '); }
+function makeLabelCanvas(it, o){
+  const H = Math.round(o.h*PXMM); let W = Math.round(o.len*PXMM);
+  const tmp = document.createElement('canvas');
+  JsBarcode(tmp, String(it['ID']), {format:'CODE128', width:4, height:100, displayValue:false, margin:0});
+  const pad = Math.round(1.6*PXMM), qz = 44, bw = tmp.width + qz*2;      // 4px=約0.28mm。左右に静穏域
+  const minW = o.name ? bw + pad*3 + Math.round(22*PXMM) : bw + pad*2;
+  if (W < minW) W = minW;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,W,H); g.fillStyle = '#000'; g.textBaseline = 'top';
+  const font = (px,w='700') => `${w} ${px}px "Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif`;
+  const bx = o.name ? pad : Math.round((W-bw)/2);
+  const bh = Math.round(H*0.62);
+  g.drawImage(tmp, 0, 0, tmp.width, tmp.height, bx+qz, Math.round(H*0.08), tmp.width, bh);
+  const idPx = Math.round(H*0.2); g.font = font(idPx); g.textAlign = 'center';
+  g.fillText(String(it['ID']), bx+bw/2, Math.round(H*0.08)+bh+Math.round(H*0.04));
+  if (o.name){
+    g.textAlign = 'left';
+    const xr = bx + bw + pad, tw = W - xr - pad;
+    g.fillRect(xr - Math.round(pad*.6), Math.round(H*.08), 2, Math.round(H*.84));
+    const cat = it['カテゴリ'] ? it['カテゴリ']+'貸出用' : '';
+    g.font = font(Math.round(H*.13),'400'); g.fillText(cat, xr, Math.round(H*.04));
+    const no = it['号機'] ? 'No.'+it['号機'] : '';
+    const noPx = Math.round(H*.3);
+    const areaTop = Math.round(H*.2), areaBot = no ? H - noPx - Math.round(H*.06) : H - Math.round(H*.05);
+    let fs = Math.round(H*.17), lines;
+    const wrap = (txt, px) => { g.font = font(px); const out=[]; let cur='';
+      for (const ch of txt){ if (g.measureText(cur+ch).width > tw && cur){ out.push(cur); cur = ch; } else cur += ch; }
+      if (cur) out.push(cur); return out; };
+    for (; fs >= Math.round(H*.09); fs--){ lines = wrap(shortName(it), fs); if (lines.length*fs*1.15 <= areaBot-areaTop) break; }
+    lines.forEach((l,i) => { g.font = font(fs); g.fillText(l, xr, areaTop + i*fs*1.15); });
+    if (no){ g.font = font(noPx); g.textAlign='right'; g.fillText(no, W-pad, H - noPx - Math.round(H*.04)); }
+  }
+  return c;
+}
+/* PNGに解像度(360dpi)を埋め込む（テプラ編集ソフトに実寸で取り込めるように） */
+const crcT = (()=>{ const t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+const crc32 = b => { let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c = crcT[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+async function pngBlob(canvas){
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+  const src = new Uint8Array(await blob.arrayBuffer());
+  const ppm = Math.round(DPI/0.0254), data = new Uint8Array(13), dv = new DataView(data.buffer);
+  const chunk = new Uint8Array(4+4+9+4), cv = new DataView(chunk.buffer);
+  cv.setUint32(0, 9); chunk.set([0x70,0x48,0x59,0x73], 4);           // 'pHYs'
+  cv.setUint32(8, ppm); cv.setUint32(12, ppm); chunk[16] = 1;
+  cv.setUint32(17, crc32(chunk.subarray(4,17)));
+  const out = new Uint8Array(src.length + chunk.length);
+  out.set(src.subarray(0,33)); out.set(chunk, 33); out.set(src.subarray(33), 33+chunk.length);
+  return new Blob([out], {type:'image/png'});
+}
+function labelOpts(){ return {h:+$('lblH').value||18, len:+$('lblLen').value||70, name:$('lblName').checked}; }
+function checkedIds(){ return [...$('lblList').querySelectorAll('input:checked')].map(c => c.value); }
+function download(blob, name){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 500); }
+function drawLabelList(){
+  const q = $('lblQ').value.trim().toLowerCase(), keep = new Set(checkedIds());
+  $('lblList').innerHTML = S.items.filter(it => !q || (dispName(it)+it['ID']+(it['型番']||'')).toLowerCase().includes(q))
+    .map(it => `<label><input type="checkbox" value="${esc(it['ID'])}" ${keep.has(it['ID'])?'checked':''}> <b>${esc(it['ID'])}</b>　${esc(dispName(it))}</label>`).join('');
+  $('lblList').querySelectorAll('input').forEach(c => c.onchange = drawPrev);
+}
+function drawPrev(){
+  const id = checkedIds()[0], box = $('labelPrev');
+  if (!id){ box.textContent = '商品を選ぶとプレビューが出ます'; return; }
+  try { const c = makeLabelCanvas(S.items.find(x => x['ID']===id), labelOpts()); box.innerHTML = ''; const im = new Image(); im.src = c.toDataURL(); box.appendChild(im); }
+  catch(e){ box.textContent = 'プレビューを作れません（バーコードライブラリを読み込めていない可能性）'; }
+}
+function openLabel(ids){
+  $('lblQ').value = ''; S.items.forEach(()=>{}); $('lblList').innerHTML = '';
+  drawLabelList();
+  if (ids) $('lblList').querySelectorAll('input').forEach(c => c.checked = ids.includes(c.value));
+  else $('lblList').querySelectorAll('input').forEach(c => c.checked = true);
+  $('lblH').value = store.get('dm_lblH') || 18; $('lblLen').value = store.get('dm_lblLen') || 70;
+  drawPrev(); open_('mLabel');
+}
+$('bLabel').onclick = () => openLabel(null);
+$('lblAll').onclick = () => { $('lblList').querySelectorAll('input').forEach(c => c.checked = true); drawPrev(); };
+$('lblNone').onclick = () => { $('lblList').querySelectorAll('input').forEach(c => c.checked = false); drawPrev(); };
+$('lblQ').oninput = () => { drawLabelList(); drawPrev(); };
+['lblH','lblLen','lblName'].forEach(i => $(i).onchange = () => { store.set('dm_lblH',$('lblH').value); store.set('dm_lblLen',$('lblLen').value); drawPrev(); });
+$('lblZip').onclick = async () => {
+  const ids = checkedIds(); if(!ids.length) return toast('商品を選んでください');
+  if (typeof JSZip === 'undefined') return toast('ZIPライブラリを読み込めません');
+  const zip = new JSZip(), o = labelOpts();
+  for (const id of ids){ zip.file(`${id}.png`, await pngBlob(makeLabelCanvas(S.items.find(x => x['ID']===id), o))); }
+  download(await zip.generateAsync({type:'blob'}), `barcode_labels_${ymd(todayMid())}.zip`);
+  toast(`${ids.length}枚のラベル画像を保存しました`);
+};
+function labelRows(){ return checkedIds().map(id => { const it = S.items.find(x => x['ID']===id); return [id, id, shortName(it), it['号機']||'', it['型番']||'']; }); }
+$('lblCsv').onclick = () => {
+  const rows = labelRows(); if(!rows.length) return toast('商品を選んでください');
+  const q = v => /[",\r\n]/.test(v) ? '"'+String(v).replace(/"/g,'""')+'"' : v;
+  download(new Blob(['﻿'+rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv'}), `tepra_labels_${ymd(todayMid())}.csv`);
+};
+$('lblCopy').onclick = async () => {
+  const rows = labelRows(); if(!rows.length) return toast('商品を選んでください');
+  try { await navigator.clipboard.writeText(rows.map(r => r.join('\t')).join('\n')); toast('コピーしました。テプラのデータ表に貼り付けてください'); }
+  catch(e){ toast('コピーできませんでした（CSVを使ってください）'); }
+};
+$('lblPrint').onclick = () => {
+  const ids = checkedIds(); if(!ids.length) return toast('商品を選んでください');
+  const o = labelOpts(); let maxW = 0; const imgs = [];
+  ids.forEach(id => { const c = makeLabelCanvas(S.items.find(x => x['ID']===id), o); maxW = Math.max(maxW, c.width); imgs.push(c); });
+  const wmm = (maxW/PXMM).toFixed(1);
+  printHTML(imgs.map(c => `<img src="${c.toDataURL()}" style="width:${(c.width/PXMM).toFixed(1)}mm;height:${o.h}mm">`).join(''), 'label', `size:${wmm}mm ${o.h}mm;margin:0`);
+};
+
+/* ---- 印刷（貸出台帳・在庫一覧・赤カード） ---- */
+function printHTML(html, mode, pageCss){
+  $('printArea').innerHTML = html; document.body.dataset.pm = mode;
+  let st = $('pgstyle'); if(!st){ st = document.createElement('style'); st.id = 'pgstyle'; document.head.appendChild(st); }
+  st.textContent = `@page{${pageCss}}`;
+  setTimeout(() => window.print(), 350);
+}
+$('bPrint').onclick = () => open_('mPrint');
+$('pLedger').onclick = () => {
+  close_('mPrint');
+  const l = S.items.filter(i => i['状態']==='貸出中').sort((a,b) => String(a['貸出日']).localeCompare(String(b['貸出日'])));
+  const blank = Array.from({length:Math.max(0,20-l.length)}, () => '<tr>'+'<td>&nbsp;</td>'.repeat(8)+'</tr>').join('');
+  printHTML(`<h3>デモ商品 貸出台帳　${ymd(todayMid())} 現在</h3><table><thead><tr><th>貸出日</th><th>貸出先（お名前）</th><th>品名</th><th>ID</th><th>返却予定</th><th>担当営業</th><th>配達担当</th><th>返却日</th></tr></thead><tbody>` +
+    l.map(i => `<tr><td>${esc(i['貸出日'])}</td><td>${esc(i['貸出先'])}</td><td>${esc(dispName(i))}</td><td>${esc(i['ID'])}</td><td>${esc(i['返却期限'])}</td><td>${esc(i['担当者'])}</td><td>${esc(i['配達担当'])}</td><td></td></tr>`).join('') + blank + '</tbody></table>', 'ledger', 'size:A4 landscape;margin:10mm');
+};
+$('pStock').onclick = () => {
+  close_('mPrint');
+  printHTML(`<h3>デモ商品 在庫一覧　${ymd(todayMid())} 現在</h3>` + stockTable(filtered()), 'stock', 'size:A4 landscape;margin:10mm');
+};
+$('pCard').onclick = () => {
+  close_('mPrint');
+  const list = filtered(), two = $('pCard2').checked;
+  const card = (it, loc) => { const w = document.createElement('div'); w.className='cd';
+    w.innerHTML = `<div class="cd-h">${esc(it['カテゴリ']||'')}貸出用${goki(it)?`<span class="cd-t">${goki(it)}</span>`:''}</div><div class="cd-n">${esc(it['機種'])}</div>
+      <div class="cd-l loc-${esc(loc)}">${esc(loc)}</div>
+      <div class="cd-p">${photoHTML(it)}${it['型番']?`<span class="mdl">${esc(it['型番'])}</span>`:''}</div><div class="cd-b"></div>`;
+    const b = w.querySelector('.cd-b'); b.appendChild(barcodeSVG(it['ID'], 40, 2)); const t = document.createElement('div'); t.textContent = it['ID']; b.appendChild(t);
+    return w.outerHTML; };
+  printHTML(list.map(it => two ? card(it,'本体貼付け') + card(it, it['場所']||'店') : card(it, it['場所']||'店')).join(''), 'card', 'size:A4;margin:6mm');
+};
+
+/* ---- 設定・CSV取込 ---- */
+$('bSet').onclick = () => { $('sApi').value=S.api; $('sToken').value=S.token; $('sUser').value=S.user; $('sReset').style.display = S.api ? 'none' : ''; open_('mSet'); };
+$('sSave').onclick = () => {
+  S.api=$('sApi').value.trim(); S.token=$('sToken').value.trim(); S.user=$('sUser').value.trim();
+  store.set('dm_api',S.api); store.set('dm_token',S.token); store.set('dm_user',S.user);
+  close_('mSet'); modeTag(); reload();
+};
+$('sReset').onclick = () => { if(confirm('試用データを初期化します。よろしいですか？')){ local.save(seed()); close_('mSet'); reload(); } };
+function parseCSV(text){
+  const rows = []; let row = [], cur = '', q = false;
+  text = text.replace(/^﻿/, '');
+  for (let i=0;i<text.length;i++){ const ch = text[i];
+    if (q){ if (ch==='"'){ if (text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if (ch==='"') q=true; else if (ch===','){ row.push(cur); cur=''; }
+    else if (ch==='\n'||ch==='\r'){ if (ch==='\r'&&text[i+1]==='\n') i++; row.push(cur); cur=''; if(row.some(v=>v!=='')) rows.push(row); row=[]; }
+    else cur+=ch; }
+  row.push(cur); if(row.some(v=>v!=='')) rows.push(row); return rows;
+}
+$('sCsv').onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rows = parseCSV(await f.text()); if (rows.length<2) return toast('データ行がありません');
+  const alias = {'商品名':'機種','機種名':'機種','品名':'機種','名前':'機種','管理番号':'ID','番号':'ID','型式':'型番','貸出者':'貸出先','期限':'返却期限','返却予定日':'返却期限','返却予定':'返却期限','担当':'担当者','担当営業':'担当者','配達':'配達担当','運んだ人':'配達担当','ドライバー':'配達担当','画像':'写真','写真URL':'写真'};
+  const head = rows[0].map(h => alias[h.trim()] || h.trim());
+  let seq = 0; const used = new Set(S.items.map(i => i['ID']));
+  const nextFree = () => { let id; do { id = 'D'+String(++seq).padStart(4,'0'); } while(used.has(id)); used.add(id); return id; };
+  const items = rows.slice(1).map(r => { const o = {}; head.forEach((h,i) => o[h] = (r[i]||'').trim());
+    let name = o['機種']||''; const m = name.match(/\s*([①-⑳])\s*$/);
+    if (m && !o['号機']){ o['号機'] = String(CIRC.indexOf(m[1])+1); name = name.replace(/\s*[①-⑳]\s*$/,''); }
+    o['機種'] = name; if(!o['ID']) o['ID'] = nextFree(); used.add(o['ID']);
+    o['状態'] = STATUSES.includes(o['状態']) ? o['状態'] : (o['貸出先'] ? '貸出中' : '在庫');
+    o['場所'] = o['場所'] || '店'; o['カテゴリ'] = o['カテゴリ'] || 'その他';
+    return o; }).filter(o => o['機種']);
+  if (!items.length) return toast('取り込める行がありません（見出しに「機種」か「商品名」が必要です）');
+  if (!confirm(`${items.length}件を取り込みます。同じIDは上書きされます。よろしいですか？`)) return;
+  if (await run('import',{items}, `${items.length}件を取り込みました`)) close_('mSet');
+  e.target.value = '';
+};
+function modeTag(){ $('modeTag').style.display = S.api ? 'none' : ''; }
+
+/* ---- 画面操作 ---- */
+$('bNew').onclick = () => openEdit(null);
+$('bRef').onclick = () => reload().then(()=>toast('更新しました'));
+$('bFont').onclick = () => { const big = store.get('dm_big')!=='1'; store.set('dm_big', big?'1':'0'); document.documentElement.style.fontSize = big ? '19px' : '16px'; };
+$('q').oninput = render; $('fCat').onchange = render; $('fStaff').onchange = render; $('sortKey').onchange = render;
+$('sortDir').onclick = () => { S.dir *= -1; $('sortDir').textContent = S.dir===1 ? '↑ 昇順' : '↓ 降順'; render(); };
+$('grp').checked = S.group; $('grp').onchange = () => { S.group = $('grp').checked; store.set('dm_group', S.group?'1':'0'); render(); };
+$('views').querySelectorAll('button').forEach(b => b.onclick = () => {
+  S.view = b.dataset.v; $('views').querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b)); render();
+});
+
+/* ---- 起動 ---- */
+$('eStatus').innerHTML = STATUSES.map(c => `<option>${c}</option>`).join('');
+if (store.get('dm_big')==='1') document.documentElement.style.fontSize = '19px';
+modeTag();
+reload().then(() => {
+  const id = new URLSearchParams(location.search).get('id');   // 以前のQRコードをカメラアプリで読んだ場合
+  if (id) { if (S.items.some(x => String(x['ID'])===id)) openDetail(id); else toast('登録なし: '+id); }
+});
+</script>
+</body>
+</html>
