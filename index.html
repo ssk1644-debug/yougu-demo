@@ -61,6 +61,13 @@ input,select,textarea{font:inherit}
 .tile .nm{font-weight:800;font-size:.95rem;line-height:1.35;color:var(--tx);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .tile .tag{position:absolute;left:10px;top:10px;z-index:3;color:#fff;font-weight:700;font-size:.74rem;padding:5px 11px;border-radius:999px;background:var(--c,var(--ok));box-shadow:0 2px 6px rgba(0,0,0,.18);letter-spacing:.01em}
 .tile .note{position:absolute;right:10px;top:10px;z-index:3;background:#ffd84d;color:#6b5400;border-radius:999px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:.8rem;box-shadow:0 2px 6px rgba(0,0,0,.2);font-weight:700}
+.tile .kind{position:absolute;left:10px;bottom:10px;z-index:3;background:#189165;color:#fff;font-weight:700;font-size:.68rem;padding:3px 10px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.18);letter-spacing:.02em}
+.ph.stack{overflow:visible}
+.ph.stack .card-l{position:absolute;width:76%;height:76%;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(20,30,50,.18);border:1px solid rgba(20,30,50,.06)}
+.ph.stack .card-l img{padding:7%}
+.ph.stack .g2{transform:rotate(-10deg) translate(-15%,9%);z-index:1;filter:saturate(.8) brightness(.97)}
+.ph.stack .g1{transform:rotate(7deg) translate(13%,-7%);z-index:2;filter:saturate(.9)}
+.ph.stack .front{z-index:3}
 .tile .sub{font-size:.82rem;color:var(--sub);line-height:1.4}
 .tile .sub b{color:var(--tx)}
 .badge{display:inline-block;color:#fff;border-radius:999px;padding:3px 12px;font-size:.78rem;font-weight:700;background:var(--c,var(--ok))}
@@ -115,6 +122,7 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
  .cd-p{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:2mm;position:relative}
  .cd-p img{max-width:100%;max-height:100%;object-fit:contain}.cd-p .em{font-size:20mm}
  .cd-p .mdl{position:absolute;left:2mm;top:2mm;background:#fff35c;color:#2b2b2b;font-size:3.1mm;font-weight:700;padding:.6mm 2mm;border-radius:.6mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;box-shadow:.3mm .3mm 0 rgba(0,0,0,.15)}
+ .cd-p .cd-s{position:absolute;right:2mm;bottom:2mm;color:#fff;font-weight:700;font-size:2.7mm;padding:.7mm 2.2mm;border-radius:999px;-webkit-print-color-adjust:exact;print-color-adjust:exact;box-shadow:.3mm .3mm 0 rgba(0,0,0,.15)}
  .cd-b{text-align:center;padding:1mm 0 2mm;border-top:1px solid rgba(0,0,0,.1)}.cd-b svg{width:60mm;height:12mm}
  body[data-pm=ledger] table,body[data-pm=stock] table{border-radius:0}
  body[data-pm=ledger] th,body[data-pm=ledger] td,body[data-pm=stock] th,body[data-pm=stock] td{border:1px solid #666;padding:2.2mm;font-size:3.6mm;white-space:normal}
@@ -127,6 +135,7 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
 <header>
  <h1>🧰 デモ商品管理 <span id="modeTag" class="mode" style="display:none">試用モード</span></h1>
  <button id="bNew">＋ 登録</button>
+ <button id="bArrival">🚚 新品入荷</button>
  <button id="bBulk">📦 まとめて持出/返却</button>
  <button id="bDep">📋 出発チェック</button>
  <button id="bAudit">🧮 棚卸</button>
@@ -141,6 +150,7 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
  <div class="bar">
   <input type="search" id="q" placeholder="🔍 商品名・ID・型番・お客様名・担当で検索">
   <select id="fCat"></select>
+  <select id="fKind"><option value="">区分：すべて</option><option value="デモ">デモ品</option><option value="新品">新品在庫</option></select>
   <select id="fStaff"><option value="">担当：すべて</option></select>
   <select id="sortKey">
    <option value="due">並び：返却予定日</option><option value="name">商品名</option><option value="id">ID</option>
@@ -156,6 +166,13 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
 </main>
 <button class="fab" id="bScan">📷<small>読み取り</small></button>
 
+<!-- 期限超過のお知らせ -->
+<div class="modal" id="mOverdue"><div class="box w">
+ <h2>⚠ 期限超過のお知らせ</h2>
+ <div class="hint">返却予定日を過ぎている商品があります。</div>
+ <div id="overdueBody" class="wrap"></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
 <!-- 詳細 -->
 <div class="modal" id="mDetail"><div class="box" id="detailBox"></div></div>
 <!-- 機種まとめ -->
@@ -168,7 +185,7 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
   <label>機種名<input id="eName"></label>
   <div class="two"><label>型番<input id="eModel"></label><label>メーカー<input id="eMaker"></label></div>
   <div class="two"><label>カテゴリ<input id="eCat" list="catList"><datalist id="catList"></datalist></label><label>保管場所<input id="ePlace" list="placeList"><datalist id="placeList"><option value="店"><option value="倉庫"></datalist></label></div>
-  <label>状態<select id="eStatus"></select></label>
+  <div class="two"><label>区分<select id="eKind"><option value="デモ">デモ品</option><option value="新品">新品在庫</option></select></label><label>状態<select id="eStatus"></select></label></div>
   <label>写真<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
    <img id="ePrev" style="width:96px;height:72px;object-fit:contain;background:#f3f3f3;border-radius:8px;display:none">
    <button class="g" type="button" id="ePhotoCam">📷 撮影</button><button class="g" type="button" id="ePhotoPick">🖼 選ぶ</button></div></label>
@@ -225,6 +242,24 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
  <div id="readerBulk"></div>
  <div class="row"><input id="bulkManual" placeholder="読めない時はIDを手入力" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="p" id="bulkManualGo">追加</button></div>
  <div class="row"><button class="g" id="bulkClear">リストを空にする</button><span class="sp"></span><button class="p big" id="bulkGo">まとめて持ち出す</button></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 新品入荷 -->
+<div class="modal" id="mArrival"><div class="box w">
+ <h2>🚚 新品入荷・入荷履歴</h2>
+ <div class="hint">新品を仕入れた時の記録です。「商品一覧にも登録する」を付けると、数量ぶんの号機が自動発行され、バーコードで印刷・管理できるようになります。</div>
+ <div class="f">
+  <div class="two"><label>入荷日<input type="date" id="arDate"></label><label>数量<input type="number" id="arQty" min="1" value="1"></label></div>
+  <label>機種名<input id="arName" list="catNameList"><datalist id="catNameList"></datalist></label>
+  <div class="two"><label>型番<input id="arModel"></label><label>メーカー<input id="arMaker"></label></div>
+  <div class="two"><label>カテゴリ<input id="arCat" list="catList"></label><label>仕入先<input id="arSupplier"></label></div>
+  <div class="two"><label>単価（税込・任意）<input type="number" id="arPrice" min="0"></label><label>保管場所<input id="arPlace" list="placeList"></label></div>
+  <label>メモ（任意）<input id="arNote"></label>
+  <label class="chk"><input type="checkbox" id="arAddStock" checked> 商品一覧にも「新品在庫」として登録する（号機を自動発行してバーコード管理）</label>
+ </div>
+ <div class="row"><span class="sp"></span><button class="p" id="arSave">入荷を記録する</button></div>
+ <h3 style="margin:16px 0 6px">入荷履歴</h3>
+ <div id="arHistBox" class="wrap"></div>
  <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
 </div></div>
 <!-- 棚卸（在庫確認） -->
@@ -327,7 +362,7 @@ const store = {
 };
 const S = {
   api: store.get('dm_api') || '', token: store.get('dm_token') || '', user: store.get('dm_user') || '',
-  items: [], staff: [], view:'tile', dir:1, chip:'', editingId:null, lendId:null, resvId:null, photo:null,
+  items: [], staff: [], arrivals: [], view:'tile', dir:1, chip:'', editingId:null, lendId:null, resvId:null, photo:null,
   group: store.get('dm_group')==='1', lastStaff: store.get('dm_staff') || '', lastDriver: store.get('dm_driver') || ''
 };
 
@@ -380,6 +415,30 @@ const local = {
   load(){ try{ const j=JSON.parse(store.get('dm_items')); if(Array.isArray(j)) return j; }catch(e){} const s=seed(); this.save(s); return s; },
   save(a){ store.set('dm_items', JSON.stringify(a)); }
 };
+const localArr = {
+  load(){ try{ const j=JSON.parse(store.get('dm_arrivals')); if(Array.isArray(j)) return j; }catch(e){} return []; },
+  save(a){ store.set('dm_arrivals', JSON.stringify(a)); }
+};
+async function apiArrival(action, payload={}){
+  if (!S.api){
+    let a = localArr.load();
+    if (action==='arrivalSave'){ const it={...payload.item,'更新日時':nowStr()}; const i=a.findIndex(x=>x['ID']===it['ID']); if(i<0) a.push(it); else a[i]=it; }
+    else if (action==='arrivalDelete'){ const i=a.findIndex(x=>x['ID']===payload.id); if(i>=0) a.splice(i,1); }
+    localArr.save(a);
+    return {ok:true, arrivals:a};
+  }
+  const body = {action, token:S.token, user:S.user, ...payload};
+  const r = await fetch(S.api, {method:'POST', body:JSON.stringify(body)});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error||'通信エラー'); return j;
+}
+async function loadArrivals(){
+  if (!S.api) return localArr.load();
+  try { const j = await apiArrival('arrivalList'); return j.arrivals||[]; } catch(e){ toast('入荷履歴の読込エラー: '+e.message); return []; }
+}
+function nextArrId(){
+  const nums = (S.arrivals||[]).map(i => (String(i['ID']).match(/^A(\d+)$/)||[])[1]).filter(Boolean).map(Number);
+  return 'A' + String((nums.length?Math.max(...nums):0)+1).padStart(4,'0');
+}
 function addMemo(it, text, who){
   if (!text) return;
   const a = memos(it); a.push({d:ymd(todayMid()), t:text, w:who||''}); it['メモ'] = JSON.stringify(a);
@@ -433,12 +492,13 @@ async function reload(){ try { apply(await api('list')); } catch(e){ toast('読�
 
 /* ---- 絞り込み・ソート ---- */
 function filtered(){
-  const q = $('q').value.trim().toLowerCase(), cat = $('fCat').value, st = $('fStaff').value;
+  const q = $('q').value.trim().toLowerCase(), cat = $('fCat').value, st = $('fStaff').value, kind = $('fKind').value;
   let a = S.items.filter(it => {
     const d = derive(it);
     if (S.chip==='over' && d.eff!=='期限超過') return false;
     if (S.chip && S.chip!=='over' && it['状態']!==S.chip) return false;
     if (cat && it['カテゴリ']!==cat) return false;
+    if (kind && (it['区分']||'デモ')!==kind) return false;
     if (st && it['担当者']!==st) return false;
     if (q && !['ID','機種','型番','メーカー','貸出先','予約者','担当者','場所','メモ'].some(k => String(it[k]||'').toLowerCase().includes(q))) return false;
     return true;
@@ -488,11 +548,21 @@ function subText(it){
   if (it['状態']==='メンテ中') return 'メンテナンス中';
   return esc(it['場所']||'');
 }
+function stackPhotoHTML(g){
+  const tot = g.units.length;
+  if (tot<=1) return photoHTML(g.first);
+  let html = '';
+  if (tot>=3) html += `<div class="card-l g2">${photoHTML(g.first)}</div>`;
+  html += `<div class="card-l g1">${photoHTML(g.first)}</div>`;
+  html += `<div class="card-l front">${photoHTML(g.first)}</div>`;
+  return html;
+}
 function tileHTML(it){
   const d = derive(it), n = memos(it).length, dim = it['状態']==='貸出中';
   return `<div class="tile s-${d.eff} ${dim?'dim':''}" data-id="${esc(it['ID'])}"><div class="ph">${photoHTML(it)}
     ${d.eff!=='在庫'?`<span class="tag">${d.eff==='貸出中'?'⇥ ':''}${d.eff}</span>`:''}
-    ${n?`<span class="note">📝${n>9?'9+':n}</span>`:''}</div>
+    ${n?`<span class="note">📝${n>9?'9+':n}</span>`:''}
+    ${it['区分']==='新品'?'<span class="kind">新品</span>':''}</div>
     <div class="info"><div class="nm">${esc(dispName(it))}</div><div class="sub">${subText(it)}</div></div></div>`;
 }
 function render(){
@@ -506,7 +576,7 @@ function render(){
       box.innerHTML = '<div class="tiles">' + gs.map((g,i) => {
         const tot=g.units.length, over=g.units.some(u=>derive(u).eff==='期限超過');
         const stock=g.c['在庫'];
-        return `<div class="tile ${stock===0?'dim':''}" data-g="${i}"><div class="ph">${photoHTML(g.first)}
+        return `<div class="tile ${stock===0?'dim':''}" data-g="${i}"><div class="ph ${tot>1?'stack':''}">${stackPhotoHTML(g)}
           <span class="tag" style="--c:${stock===0?'var(--del)':'var(--ok)'}">在庫 ${stock}/${tot}台</span>
           ${over?'<span class="note" style="background:#ffd3d3;color:#8a1515">⚠</span>':''}</div>
           <div class="info"><div class="nm">${esc(g.key)}</div>
@@ -554,6 +624,8 @@ function refreshLists(){
   const cc = $('fCat').value;
   $('fCat').innerHTML = '<option value="">カテゴリ：すべて</option>' + [...new Set(S.items.map(i => i['カテゴリ']).filter(Boolean))].map(c => `<option ${c===cc?'selected':''}>${esc(c)}</option>`).join('');
   $('catList').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+  const itemNames = [...new Set(S.items.map(i => i['機種']).filter(Boolean))];
+  $('catNameList').innerHTML = itemNames.map(n => `<option value="${esc(n)}">`).join('');
   const ac = $('auCat').value;
   $('auCat').innerHTML = '<option value="">すべて</option>' + [...new Set(S.items.map(i => i['カテゴリ']).filter(Boolean))].map(c => `<option ${c===ac?'selected':''}>${esc(c)}</option>`).join('');
 }
@@ -643,7 +715,7 @@ function openEdit(it, presetId){
   $('eNo').value = it?.['号機'] || ''; $('eName').value = it?.['機種'] || '';
   $('eModel').value = it?.['型番'] || ''; $('eMaker').value = it?.['メーカー'] || '';
   $('eCat').value = it?.['カテゴリ'] || ''; $('ePlace').value = it?.['場所'] || '店';
-  $('eStatus').value = it?.['状態'] || '在庫';
+  $('eStatus').value = it?.['状態'] || '在庫'; $('eKind').value = it?.['区分'] || 'デモ';
   const pv = $('ePrev'); if (it?.['写真']){ pv.src = it['写真']; pv.style.display=''; } else { pv.removeAttribute('src'); pv.style.display='none'; }
   $('eDel').style.display = it ? '' : 'none';
   open_('mEdit'); if(!it) $('eName').focus();
@@ -670,7 +742,7 @@ $('eSave').onclick = async () => {
   if (!S.editingId && S.items.some(i => i['ID']===id)) return toast('そのIDは既に登録されています');
   const old = S.items.find(i => i['ID']===S.editingId) || {};
   const item = {...old, 'ID':id,'機種':name,'号機':$('eNo').value.trim(),'型番':$('eModel').value.trim(),'メーカー':$('eMaker').value.trim(),
-    'カテゴリ':$('eCat').value.trim()||'その他','場所':$('ePlace').value.trim(),'状態':$('eStatus').value};
+    'カテゴリ':$('eCat').value.trim()||'その他','場所':$('ePlace').value.trim(),'状態':$('eStatus').value,'区分':$('eKind').value};
   if (item['状態']!=='貸出中'){ item['貸出先']='';item['貸出日']='';item['返却期限']=''; }
   if (item['状態']!=='予約中'){ item['予約者']='';item['予約日']=''; }
   if (S.photo){
@@ -885,6 +957,67 @@ function depRender(){
   });
 }
 $('bDep').onclick = () => { DEP = depLoad(); open_('mDep'); depRender(); kbHandler = depOnCode; startScan('readerDep', depOnCode); };
+
+/* ---- 新品入荷 ---- */
+function nextIdBatch(n){
+  const nums = S.items.map(i => (String(i['ID']).match(/^D(\d+)$/)||[])[1]).filter(Boolean).map(Number);
+  let max = nums.length ? Math.max(...nums) : 0;
+  const out = []; for (let i=0;i<n;i++){ max++; out.push('D'+String(max).padStart(4,'0')); } return out;
+}
+function renderArrivalHist(){
+  const rows = [...(S.arrivals||[])].sort((a,b)=> String(b['日付']||'').localeCompare(String(a['日付']||'')) || String(b['ID']).localeCompare(String(a['ID'])));
+  if (!rows.length){ $('arHistBox').innerHTML = '<div class="hint">まだ入荷記録がありません</div>'; return; }
+  $('arHistBox').innerHTML = '<table><thead><tr><th>日付</th><th>機種</th><th>型番</th><th>メーカー</th><th>数量</th><th>仕入先</th><th>単価</th><th>メモ</th><th></th></tr></thead><tbody>' +
+    rows.map(r => `<tr><td>${esc(r['日付'])}</td><td>${esc(r['機種'])}</td><td>${esc(r['型番'])}</td><td>${esc(r['メーカー'])}</td><td>${esc(r['数量'])}</td><td>${esc(r['仕入先'])}</td><td>${r['単価']?esc(r['単価'])+'円':''}</td><td>${esc(r['メモ'])}</td><td><button class="g arDelBtn" data-id="${esc(r['ID'])}">削除</button></td></tr>`).join('') + '</tbody></table>';
+  $('arHistBox').querySelectorAll('.arDelBtn').forEach(b => b.onclick = async () => {
+    if (!confirm('この入荷記録を削除します。よろしいですか？（商品一覧に登録済みの在庫は削除されません）')) return;
+    await apiArrival('arrivalDelete', {id:b.dataset.id});
+    S.arrivals = await loadArrivals(); renderArrivalHist();
+  });
+}
+async function openArrival(){
+  $('arDate').value = ymd(todayMid()); $('arQty').value = 1; $('arName').value=''; $('arModel').value=''; $('arMaker').value='';
+  $('arCat').value=''; $('arSupplier').value=''; $('arPrice').value=''; $('arPlace').value='店'; $('arNote').value=''; $('arAddStock').checked = true;
+  open_('mArrival');
+  S.arrivals = await loadArrivals();
+  renderArrivalHist();
+}
+$('bArrival').onclick = openArrival;
+$('arName').oninput = () => {
+  const hit = autoFillProduct($('arName').value);
+  if (hit){ if(!$('arModel').value && hit.model) $('arModel').value = hit.model; if(!$('arMaker').value && hit.maker) $('arMaker').value = hit.maker; }
+};
+$('arSave').onclick = async () => {
+  const name = $('arName').value.trim(); const qty = Math.max(1, parseInt($('arQty').value)||1);
+  if (!name) return toast('機種名を入力してください');
+  const rec = {
+    'ID': nextArrId(), '日付': $('arDate').value || ymd(todayMid()), '機種': name,
+    '型番': $('arModel').value.trim(), 'メーカー': $('arMaker').value.trim(), '数量': qty,
+    '仕入先': $('arSupplier').value.trim(), '単価': $('arPrice').value ? Number($('arPrice').value) : '',
+    '担当者': S.user||'', 'メモ': $('arNote').value.trim()
+  };
+  try { await apiArrival('arrivalSave', {item:rec}); } catch(e){ return toast('入荷記録の保存に失敗: '+e.message); }
+
+  if ($('arAddStock').checked){
+    const cat = $('arCat').value.trim() || (S.items.find(i=>i['機種']===name)||{})['カテゴリ'] || 'その他';
+    const place = $('arPlace').value.trim() || '店';
+    const existingGoki = S.items.filter(i=>i['機種']===name).map(i=>Number(i['号機'])||0);
+    let goki = existingGoki.length ? Math.max(...existingGoki) : 0;
+    const startGoki = goki + 1;
+    const hit = autoFillProduct(name);
+    const ids = nextIdBatch(qty);
+    const newItems = ids.map(id => { goki++; return {
+      'ID': id, '機種': name, '号機': String(goki), '型番': rec['型番']||(hit&&hit.model)||'', 'カテゴリ': cat,
+      '区分':'新品', 'メーカー': rec['メーカー']||(hit&&hit.maker)||'', '状態':'在庫', '貸出先':'','貸出日':'','返却期限':'',
+      '担当者':'','配達担当':'','予約者':'','予約日':'', '場所': place, 'メモ':'', '写真': (hit&&hit.photo)||'', '更新日時': nowStr()
+    }; });
+    await run('import',{items:newItems}, `入荷を記録し、新品在庫 ${qty}件を登録しました（号機${startGoki}〜${goki}）`);
+  } else {
+    toast('入荷を記録しました');
+  }
+  S.arrivals = await loadArrivals(); renderArrivalHist();
+  $('arName').value=''; $('arModel').value=''; $('arMaker').value=''; $('arCat').value=''; $('arSupplier').value=''; $('arPrice').value=''; $('arNote').value=''; $('arQty').value=1;
+};
 $('depQ').oninput = () => {
   const q = $('depQ').value.trim().toLowerCase();
   if (!q){ $('depSearch').style.display = 'none'; return; }
@@ -1040,10 +1173,12 @@ $('pStock').onclick = () => {
 $('pCard').onclick = () => {
   close_('mPrint');
   const list = filtered(), two = $('pCard2').checked;
+  const stColor = {'在庫':'var(--ok)','貸出中':'var(--lend)','予約中':'var(--resv)','メンテ中':'var(--mnt)','廃棄':'var(--del)'};
+  const stLabel = {'在庫':'在庫あり','貸出中':'貸出中','予約中':'予約中','メンテ中':'メンテ中','廃棄':'廃棄'};
   const card = (it, loc) => { const w = document.createElement('div'); w.className='cd';
     w.innerHTML = `<div class="cd-h">${esc(it['カテゴリ']||'')}貸出用${goki(it)?`<span class="cd-t">${goki(it)}</span>`:''}</div><div class="cd-n">${esc(it['機種'])}</div>
       <div class="cd-l loc-${esc(loc)}">${esc(loc)}</div>
-      <div class="cd-p">${photoHTML(it)}${it['型番']?`<span class="mdl">${esc(it['型番'])}</span>`:''}</div><div class="cd-b"></div>`;
+      <div class="cd-p">${photoHTML(it)}${it['型番']?`<span class="mdl">${esc(it['型番'])}</span>`:''}<span class="cd-s" style="background:${stColor[it['状態']]||'var(--ok)'}">${esc(stLabel[it['状態']]||it['状態']||'在庫あり')}</span></div><div class="cd-b"></div>`;
     const b = w.querySelector('.cd-b'); b.appendChild(barcodeSVG(it['ID'], 40, 2)); const t = document.createElement('div'); t.textContent = it['ID']; b.appendChild(t);
     return w.outerHTML; };
   printHTML(list.map(it => two ? card(it,'本体貼付け') + card(it, it['場所']||'店') : card(it, it['場所']||'店')).join(''), 'card', 'size:A4;margin:6mm');
@@ -1193,12 +1328,24 @@ function modeTag(){ $('modeTag').style.display = S.api ? 'none' : ''; }
 $('bNew').onclick = () => openEdit(null);
 $('bRef').onclick = () => reload().then(()=>toast('更新しました'));
 $('bFont').onclick = () => { const big = store.get('dm_big')!=='1'; store.set('dm_big', big?'1':'0'); document.documentElement.style.fontSize = big ? '19px' : '16px'; };
-$('q').oninput = render; $('fCat').onchange = render; $('fStaff').onchange = render; $('sortKey').onchange = render;
+$('q').oninput = render; $('fCat').onchange = render; $('fKind').onchange = render; $('fStaff').onchange = render; $('sortKey').onchange = render;
 $('sortDir').onclick = () => { S.dir *= -1; $('sortDir').textContent = S.dir===1 ? '↑ 昇順' : '↓ 降順'; render(); };
 $('grp').checked = S.group; $('grp').onchange = () => { S.group = $('grp').checked; store.set('dm_group', S.group?'1':'0'); render(); };
 $('views').querySelectorAll('button').forEach(b => b.onclick = () => {
   S.view = b.dataset.v; $('views').querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b)); render();
 });
+
+function checkOverdue(){
+  const over = S.items.filter(it => derive(it).eff==='期限超過');
+  if (!over.length) return;
+  over.sort((a,b) => (a['返却期限']||'').localeCompare(b['返却期限']||''));
+  $('overdueBody').innerHTML = '<table><thead><tr><th>商品</th><th>貸出先</th><th>返却予定</th><th>超過</th><th>担当</th></tr></thead><tbody>' +
+    over.map(it => { const d = derive(it);
+      return `<tr data-id="${esc(it['ID'])}"><td>${esc(dispName(it))}</td><td>${esc(it['貸出先']||'')}</td><td>${esc(it['返却期限']||'')}</td><td><b style="color:var(--over)">${-d.diff}日</b></td><td>${esc(it['担当者']||'')}</td></tr>`; }).join('') +
+    '</tbody></table>';
+  $('overdueBody').querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { close_('mOverdue'); openDetail(tr.dataset.id); });
+  open_('mOverdue');
+}
 
 /* ---- 起動 ---- */
 $('eStatus').innerHTML = STATUSES.map(c => `<option>${c}</option>`).join('');
@@ -1207,6 +1354,7 @@ modeTag();
 reload().then(() => {
   const id = new URLSearchParams(location.search).get('id');   // 以前のQRコードをカメラアプリで読んだ場合
   if (id) { if (S.items.some(x => String(x['ID'])===id)) openDetail(id); else toast('登録なし: '+id); }
+  else checkOverdue();
 });
 </script>
 </body>
