@@ -7,19 +7,20 @@
 <title>福祉用具デモ商品管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#eef1f5;--card:#fff;--tx:#1c2430;--sub:#73808f;--line:#e3e7ed;--pri:#2a6bd6;--pri-dk:#1d53ab;--red:#d9392b;
---ok:#189165;--lend:#3568d4;--over:#dd3f3f;--mnt:#dd8f1e;--del:#98a1ab;--resv:#8c4fd9;
---radius:16px;--radius-sm:11px;--shadow:0 1px 2px rgba(20,30,50,.06),0 1px 1px rgba(20,30,50,.04);
---shadow-md:0 4px 14px rgba(20,30,50,.10);--shadow-lg:0 12px 28px rgba(20,30,50,.16)}
+:root{--bg:#EEF1F5;--card:#fff;--tx:#101B2B;--sub:#677588;--line:#DFE4EB;--pri:#15294A;--pri-dk:#0A1830;--navy:#0F1D33;--navy2:#1B3050;--red:#d9392b;
+--ok:#1B9A6A;--lend:#2F6FE0;--over:#D8402F;--mnt:#D18A14;--del:#97A1AE;--resv:#7A4FD3;--focus:#2F6FE0;
+--radius:14px;--radius-sm:10px;--shadow:0 1px 2px rgba(16,27,43,.05);
+--shadow-md:0 1px 3px rgba(16,27,43,.06),0 8px 18px -8px rgba(16,27,43,.14);--shadow-lg:0 22px 44px -14px rgba(16,27,43,.3);
+--sans:"IBM Plex Sans JP","Noto Sans JP","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace}
 *{box-sizing:border-box}
 html{font-size:16px}
-body{margin:0;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;background:var(--bg);color:var(--tx);font-size:1rem;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--tx);font-size:1rem;-webkit-font-smoothing:antialiased}
 header{background:linear-gradient(180deg,#ffffff,#fbfcfe);color:var(--tx);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(20,30,50,.02)}
 header h1{font-size:1.08rem;font-weight:800;margin:0;flex:1;min-width:170px;display:flex;align-items:center;gap:9px;letter-spacing:.01em}
 header h1::before{content:"🧰";display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,var(--pri),var(--pri-dk));font-size:1.05rem;box-shadow:var(--shadow)}
@@ -141,6 +142,104 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
 #labelPrev{background:#fff;border:1.5px dashed #c3cad4;border-radius:10px;padding:8px;text-align:center;overflow:auto}
 #labelPrev img{max-width:100%;image-rendering:auto}
 #printArea{display:none}
+
+
+/* ===== v3：デザイン刷新（インクとペーパー。色は「状態」の意味にだけ使う） ===== */
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button{border-radius:10px;font-weight:600;box-shadow:none;border:1px solid var(--line);color:var(--tx);min-height:40px;padding:8px 14px}
+button:hover{box-shadow:none;background:#F3F5F9}
+button.p{background:var(--pri);border-color:var(--pri);color:#fff}button.p:hover{background:var(--pri-dk)}
+button.g{background:#EEF1F6;border-color:#EEF1F6;color:var(--tx)}button.g:hover{background:#E4E9F1}
+button.r{background:var(--resv);border-color:var(--resv);color:#fff}
+.seg{border-radius:10px;background:#fff}
+.seg button{border:0;border-radius:0}
+.badge{border-radius:6px;padding:3px 10px;font-weight:700;letter-spacing:.02em}
+.hgrp{display:none}
+#hbtns button svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+header h1{font-weight:700;letter-spacing:.01em}
+header h1::before{content:"";width:34px;height:34px;border-radius:9px;flex:none;box-shadow:none;
+ background:linear-gradient(90deg,transparent 0 8px,#fff 8px 10px,transparent 10px 12px,#fff 12px 13px,transparent 13px 15px,#fff 15px 18px,transparent 18px 20px,#fff 20px 21px,transparent 21px 23px,#fff 23px 25px,transparent 25px) center/100% 16px no-repeat,var(--navy)}
+.mode{background:#E8EDF5;color:#3B4C66;border-radius:6px;font-weight:700;letter-spacing:.04em}
+.chips,.nsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:0;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow)}
+.chip{border:0;border-right:1px solid var(--line);border-radius:0;box-shadow:none;text-align:left;padding:14px 18px 13px;min-width:0;background:transparent;display:flex;flex-direction:column;gap:3px;transition:background-color .12s ease}
+.chip:last-child{border-right:0}
+.chip:hover{transform:none;background:#F7F9FC}
+.chip b{order:1;font-family:var(--mono);font-size:1.75rem;font-weight:600;letter-spacing:-.03em;line-height:1.1;color:var(--tx)}
+.chip small{order:0;display:flex;align-items:center;gap:7px;font-size:.74rem;font-weight:700;color:var(--sub);letter-spacing:.03em}
+.chip small::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--d,#B5BFCC);flex:none}
+.chip[data-c="all"]{--d:var(--tx)}.chip[data-c="在庫"]{--d:var(--ok)}.chip[data-c="貸出中"]{--d:var(--lend)}.chip[data-c="予約中"]{--d:var(--resv)}.chip[data-c="over"]{--d:var(--over)}.chip[data-c="メンテ中"]{--d:var(--mnt)}
+.nsum .chip.out{--d:var(--over)}.nsum .chip.low{--d:var(--mnt)}.nsum .chip.ok{--d:var(--ok)}
+.chip.on,.nsum .chip.on,.nsum .chip.out.on,.nsum .chip.low.on,.nsum .chip.ok.on{background:#F1F4F9;border-color:var(--line);box-shadow:inset 0 -3px 0 var(--tx)}
+.chip.on b{color:var(--tx)}.chip.over b,.chip.over.on b{color:var(--over)}
+.nsum .chip.out b{color:var(--over)}.nsum .chip.low b{color:var(--mnt)}.nsum .chip.ok b{color:var(--ok)}
+.nsum .chip.st{cursor:default}
+#distBar{display:flex;gap:2px;height:8px;border-radius:99px;overflow:hidden;background:#E3E8EF;margin:0 0 20px}
+#distBar i{display:block;height:100%;min-width:4px}
+.bar{background:transparent;box-shadow:none;padding:0;gap:10px;margin-bottom:18px}
+.bar input[type=search]{padding:11px 14px 11px 42px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23677588' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 14px center/18px}
+.bar select,.ntool select,.fpanel select{background:#fff}
+.bar select{padding:10px 8px 10px 12px}
+.bar input[type=search]{flex:1 1 300px;min-width:260px}
+td.nmc{white-space:normal;min-width:200px}
+th,td{padding:11px 10px}
+.bar #sortDir{background:#fff;border:1.5px solid var(--line)}
+#views{order:-1;width:100%;background:none;border:0;border-radius:0;border-bottom:1px solid var(--line);padding:0;gap:2px;overflow:visible;margin-bottom:6px}
+#views button{border-radius:0;background:none;color:var(--sub);padding:11px 18px;font-weight:700;position:relative;min-height:44px}
+#views button:hover{color:var(--tx);background:none}
+#views button.on{background:none;color:var(--tx)}
+#views button.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;background:var(--tx);border-radius:3px 3px 0 0}
+.tiles{grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:18px}
+.tile{border-radius:14px;border:1px solid var(--line);box-shadow:none;background:#fff}
+.tile:hover{border-color:#C7CFDB;box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.ph{background:#F3F5F9;border-bottom:1px solid var(--line)}
+.ph .em{filter:grayscale(1);opacity:.42}
+.tile .info{padding:12px 14px 14px;gap:4px}
+.tile .mk{font-size:.72rem;font-weight:600;letter-spacing:.07em;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .nm{font-size:.98rem;font-weight:700;line-height:1.35}
+.tile .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px}
+.tile .id{font-family:var(--mono);font-size:.72rem;font-weight:600;background:#EDF0F5;color:var(--tx);padding:2px 7px;border-radius:5px}
+.tile .mdl{font-family:var(--mono);font-size:.74rem;color:var(--sub)}
+.tile .st{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:.74rem;font-weight:700;color:var(--ok)}
+.tile .st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.tile .sub{margin-top:5px;padding-top:8px;border-top:1px dashed var(--line);font-size:.8rem}
+.tile .tag{border-radius:6px;font-weight:700;padding:4px 10px;box-shadow:none}
+.tile .kind{border-radius:5px;background:var(--tx);box-shadow:none;font-weight:700;letter-spacing:.04em}
+.tile .note{box-shadow:none}
+table{border:1px solid var(--line);box-shadow:none;border-radius:14px}
+th{background:#F4F6FA;font-size:.72rem;letter-spacing:.06em}
+td.mono{font-family:var(--mono);font-size:.84rem;font-weight:500}
+.mksub{font-size:.74rem;color:var(--sub);margin-top:1px}
+.ncard{border-top:0;border:1px solid var(--line);box-shadow:none}
+.ncard:hover{box-shadow:var(--shadow-md);border-color:#C7CFDB}
+.ncard.st-out{background:#FFF6F4;border-color:#F0C3BC}.ncard.st-low{background:#FFF9EC;border-color:#EBD59E}
+.ncard .nnum{font-family:var(--mono);letter-spacing:-.03em}
+.ncard .nbadge,.nbadge2{border-radius:6px}
+.ncard .nmeta{font-size:.8rem}
+.nsum b{font-family:var(--mono)}
+.fab{background:var(--navy);box-shadow:0 12px 26px -6px rgba(15,29,51,.5)}
+.fab:hover{background:var(--navy2);box-shadow:0 14px 30px -6px rgba(15,29,51,.55)}
+.modal{background:rgba(12,22,38,.52)}
+.box{border-radius:18px}
+.box h2{font-weight:700;letter-spacing:.01em}
+.mrow .msub{font-size:.78rem}
+@media (min-width:721px){
+ header{position:fixed;left:0;top:0;bottom:0;width:248px;z-index:30;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:24px 14px 18px;background:var(--navy);border:0;box-shadow:none;overflow-y:auto;color:#fff}
+ header h1{flex:none;min-width:0;font-size:1.06rem;color:#fff;padding:2px 6px 20px;gap:11px;display:flex;align-items:center;white-space:nowrap}
+ header h1::before{background:linear-gradient(90deg,transparent 0 8px,#fff 8px 10px,transparent 10px 12px,#fff 12px 13px,transparent 13px 15px,#fff 15px 18px,transparent 18px 20px,#fff 20px 21px,transparent 21px 23px,#fff 23px 25px,transparent 25px) center/100% 16px no-repeat,var(--navy2)}
+ header .mode{background:rgba(255,255,255,.14);color:#D7E0EE;margin-left:45px;font-size:.64rem;padding:1px 8px}
+ header h1{flex-wrap:wrap;row-gap:4px}
+ header #bNew{background:#fff;color:var(--navy);border:0;min-height:46px;border-radius:12px;font-weight:800;margin-bottom:10px;justify-content:center;width:100%;font-size:.96rem}
+ header #bNew:hover{background:#E8EDF5}
+ #hbtns{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0}
+ .hgrp{display:block;font-size:.66rem;font-weight:700;letter-spacing:.14em;color:#7C8DA6;padding:16px 10px 6px}
+ .hgrp.push{margin-top:auto}
+ #hbtns button{display:flex;align-items:center;gap:12px;justify-content:flex-start;background:transparent;border:0;color:#C6D1E0;border-radius:9px;min-height:42px;padding:8px 10px;font-weight:600;font-size:.92rem;text-align:left}
+ #hbtns button:hover{background:rgba(255,255,255,.09);color:#fff}
+ #hbtns button:active{transform:none;background:rgba(255,255,255,.14)}
+ header button:focus-visible{outline-color:#9DB8E8}
+ main{margin:0 0 0 248px;max-width:none;padding:30px 40px 64px}
+ main>*{max-width:1480px}
+}
 
 /* ===== v2：デザイン調整＋スマホ対応 ===== */
 :root{--safe-b:env(safe-area-inset-bottom,0px)}
@@ -283,6 +382,35 @@ header h1{white-space:nowrap}
  dl{grid-template-columns:78px 1fr}
  #detailBox .row button,#groupBox .row button{min-height:50px}
 }
+
+@media (max-width:720px){
+ body.menu-open .hgrp{display:block;grid-column:1/-1;font-size:.68rem;font-weight:700;letter-spacing:.14em;color:var(--sub);padding:8px 4px 0}
+ body.menu-open #hbtns button{display:flex;align-items:center;gap:9px;justify-content:center}
+ body.menu-open #hbtns button svg{width:20px;height:20px}
+ header h1::before{box-shadow:none}
+ .chips,.nsum{display:flex;background:transparent;border:0;border-radius:0;box-shadow:none;overflow-x:auto;gap:8px;margin-bottom:12px}
+ .chip{border:1.5px solid var(--line);border-right:1.5px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow);padding:9px 14px;gap:2px;flex:0 0 auto}
+ .chip:last-child{border-right:1.5px solid var(--line)}
+ .chip b{font-size:1.35rem}
+ .chip.on,.nsum .chip.on{box-shadow:inset 0 -3px 0 var(--tx),var(--shadow);background:#F1F4F9;border-color:var(--line)}
+ #distBar{margin:0 0 14px;height:7px}
+ #views{border-bottom:0;padding:3px;background:#E3E8EF;margin-bottom:0;border-radius:14px}
+ #views button{padding:6px 4px;border-radius:11px;min-height:42px}
+ #views button.on::after{display:none}
+ #views button.on{background:#fff;color:var(--tx);box-shadow:var(--shadow-md)}
+ .bar input[type=search]{padding-left:42px}
+ .tile{border-radius:16px}
+ .tile .info{padding:10px 12px 12px}
+ .tile .nm{font-size:.88rem}
+ .tile .mk{font-size:.66rem}
+ .tile .id{font-size:.66rem;padding:1px 6px}.tile .mdl{font-size:.68rem}
+ .tile .sub{font-size:.76rem;margin-top:3px;padding-top:6px}
+ .ncard{border-left:1px solid var(--line);border-radius:16px}
+ #bnav .scan{background:var(--navy);box-shadow:0 8px 20px -4px rgba(15,29,51,.5)}
+ #bnav button.on{color:var(--tx)}
+ #bnav button.on::after{background:var(--tx)}
+ body.menu-open #hbtns button{background:#EEF1F6}
+}
 /* ===== 印刷 ===== */
 @media print{
  body>*:not(#printArea){display:none!important}
@@ -314,22 +442,26 @@ header h1{white-space:nowrap}
  <h1>デモ商品管理 <span id="modeTag" class="mode" style="display:none">試用モード</span></h1>
  <button id="bNew">＋ 登録</button>
  <div id="hbtns">
- <button id="bArrival">🚚 新品入荷</button>
- <button id="bBulk">📦 まとめて持出/返却</button>
- <button id="bDep">📋 出発チェック</button>
- <button id="bAudit">🧮 棚卸</button>
- <button id="bLabel">🏷 ラベル</button>
- <button id="bPrint">🖨 印刷</button>
- <button id="bFont" title="文字サイズ">文字 大/小</button>
- <button id="bRef">↻ 更新</button>
- <button id="bSet">⚙ 設定</button>
+ <div class="hgrp">入荷・出庫</div>
+ <button id="bArrival"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span>新品入荷</span></button>
+ <button id="bBulk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg><span>まとめて持出/返却</span></button>
+ <button id="bDep"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 4.5h6v2.5H9zM8.5 13l2.5 2.5L15.5 11"/></svg><span>出発チェック</span></button>
+ <div class="hgrp">管理</div>
+ <button id="bAudit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9"/></svg><span>棚卸</span></button>
+ <button id="bLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5h7.7l9 9a1.6 1.6 0 0 1 0 2.3l-5.4 5.4a1.6 1.6 0 0 1-2.3 0z"/><circle cx="8" cy="9" r="1.2"/></svg><span>ラベル</span></button>
+ <button id="bPrint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 5 9h14a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 19 17h-2"/><rect x="7" y="14" width="10" height="6" rx="1"/></svg><span>印刷</span></button>
+ <div class="hgrp push">表示・設定</div>
+ <button id="bFont" title="文字サイズ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></svg><span>文字 大/小</span></button>
+ <button id="bRef"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.5-3M4 5v4h4M4 13a8 8 0 0 0 14.5 3M20 19v-4h-4"/></svg><span>更新</span></button>
+ <button id="bSet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>設定</span></button>
  </div>
 </header>
 <div id="menuBack"></div>
 <main>
  <div class="chips" id="chips"></div>
+ <div id="distBar" aria-hidden="true"></div>
  <div class="bar">
-  <input type="search" id="q" placeholder="🔍 名前・ID・型番・お客様名">
+  <input type="search" id="q" placeholder="名前・ID・型番・お客様名で検索" aria-label="検索">
   <button class="g" id="bFilt" type="button">絞り込み</button>
   <div class="fpanel" id="fpanel">
   <select id="fCat"></select>
@@ -343,7 +475,7 @@ header h1{white-space:nowrap}
   <label class="chk"><input type="checkbox" id="grp"> 機種でまとめる</label>
   </div>
   <div class="seg" id="views">
-   <button data-v="tile" class="on">タイル</button><button data-v="list">在庫一覧</button><button data-v="sum">集計</button><button data-v="new" id="vNew">📦 新品在庫</button>
+   <button data-v="tile" class="on">タイル</button><button data-v="list">在庫一覧</button><button data-v="sum">集計</button><button data-v="new" id="vNew">新品在庫</button>
   </div>
  </div>
  <div id="content"></div>
@@ -418,7 +550,7 @@ header h1{white-space:nowrap}
 </div></div>
 <!-- まとめて持出・返却 -->
 <div class="modal" id="mBulk"><div class="box w">
- <h2>📦 まとめて持出・返却</h2>
+ <h2>まとめて持出・返却</h2>
  <div class="hint">同じお客様先へ何点か届ける時や、何点か引き取ってきた時に、1件ずつではなくまとめて記録できます。</div>
  <div class="seg" id="bulkMode"><button data-m="lend" class="on">まとめて持ち出し</button><button data-m="return">まとめて返却</button></div>
  <div class="f" id="bulkLendFields" style="margin-top:10px">
@@ -438,7 +570,7 @@ header h1{white-space:nowrap}
 </div></div>
 <!-- 新品入荷 -->
 <div class="modal" id="mArrival"><div class="box w">
- <h2>🚚 新品入荷・入荷履歴</h2>
+ <h2>新品入荷・入荷履歴</h2>
  <div class="hint arHint">新品を仕入れた時の記録です。「商品一覧にも登録する」を付けると、数量ぶんの号機が自動発行され、バーコードで印刷・管理できるようになります。</div>
  <div class="seg" id="arMode" style="margin:8px 0"><button data-m="one" class="on">1商品ずつ</button><button data-m="batch">🔁 連続で読む</button></div>
  <div class="row" style="margin:6px 0"><button class="p" type="button" id="arCamBtn">📷 カメラで読む</button></div>
@@ -485,7 +617,7 @@ header h1{white-space:nowrap}
 </div></div>
 <!-- 商品マスタ -->
 <div class="modal" id="mMaster"><div class="box w">
- <h2>📚 商品マスタ</h2>
+ <h2>商品マスタ</h2>
  <div class="hint">ウェルファンの発注実績から作った商品データです。商品を選ぶと、新品入荷の入力欄に入ります。新しい発注実績（Excel）を取り込むと、商品の追加と、仕入単価の最新値・履歴の更新ができます。仕入単価は税抜です。</div>
  <div class="row"><input id="mQ" type="search" placeholder="🔍 商品名・型番・JAN・メーカー" style="flex:1;min-width:160px;padding:10px;border:1px solid var(--line);border-radius:10px">
   <select id="mField"><option value="入浴排泄">入浴・排泄</option><option value="入浴">入浴のみ</option><option value="排泄">排泄のみ</option><option value="">すべて</option></select></div>
@@ -496,7 +628,7 @@ header h1{white-space:nowrap}
 </div></div>
 <!-- 棚卸（在庫確認） -->
 <div class="modal" id="mAudit"><div class="box w">
- <h2>🧮 棚卸（在庫確認）</h2>
+ <h2>棚卸（在庫確認）</h2>
  <div class="hint">「在庫」のはずの商品を一通りスキャンします。読み取れなかった商品は、記録なしで持ち出された可能性があります。</div>
  <div class="f">
   <div class="two"><label>対象の場所<select id="auPlace"><option value="">すべて</option><option>店</option><option>倉庫</option></select></label>
@@ -514,7 +646,7 @@ header h1{white-space:nowrap}
 </div></div>
 <!-- 出発前チェック -->
 <div class="modal" id="mDep"><div class="box w">
- <h2>📋 出発前チェック（持出予定の確認）</h2>
+ <h2>出発前チェック（持出予定の確認）</h2>
  <div class="hint">今日届ける商品をあらかじめ選んでおき、車に積む・持ち出す前にスキャンしてチェックします。リストに残っていればスキャン漏れです。リストは端末ごとに保存され、日付が変わると自動でリセットされます。</div>
  <input id="depQ" type="search" placeholder="🔍 商品を検索して追加" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px">
  <div id="depSearch" class="lbllist" style="display:none;margin-top:6px"></div>
@@ -773,6 +905,8 @@ function renderChips(){
   const defs = [['all','全体'],['在庫','在庫あり'],['貸出中','貸出中'],['予約中','予約中'],['over','期限超過'],['メンテ中','メンテ中']];
   $('chips').innerHTML = defs.map(([k,l]) => `<div class="chip ${k==='over'?'over':''} ${((S.chip||'all')===k)?'on':''}" data-c="${k}"><b>${c[k]}</b><small>${l}</small></div>`).join('');
   $('chips').querySelectorAll('.chip').forEach(e => e.onclick = () => { S.chip = e.dataset.c==='all' ? '' : e.dataset.c; render(); });
+  const segs = [['在庫',c['在庫'],'--ok'],['貸出中',c['貸出中']-c.over,'--lend'],['期限超過',c.over,'--over'],['予約中',c['予約中'],'--resv'],['メンテ中',c['メンテ中'],'--mnt']].filter(x => x[1]>0);
+  $('distBar').innerHTML = segs.map(x => `<i style="flex:${x[1]};background:var(${x[2]})" title="${x[0]} ${x[1]}"></i>`).join('');
 }
 function subText(it){
   const d = derive(it), n = memos(it).length;
@@ -799,15 +933,17 @@ function tileHTML(it){
     ${d.eff!=='在庫'?`<span class="tag">${d.eff==='貸出中'?'⇥ ':''}${d.eff}</span>`:''}
     ${n?`<span class="note">📝${n>9?'9+':n}</span>`:''}
     ${it['区分']==='新品'?'<span class="kind">新品</span>':''}</div>
-    <div class="info"><div class="nm">${esc(dispName(it))}</div><div class="sub">${subText(it)}</div></div></div>`;
+    <div class="info">${it['メーカー']?`<div class="mk">${esc(it['メーカー'])}</div>`:''}<div class="nm">${esc(dispName(it))}</div>
+    <div class="meta"><span class="id">${esc(it['ID'])}</span>${it['型番']?`<span class="mdl">${esc(it['型番'])}</span>`:''}${d.eff==='在庫'?'<span class="st">在庫</span>':''}</div>
+    <div class="sub">${subText(it)}</div></div></div>`;
 }
 function render(){
   renderChips(); syncNav();
   const nv = S.view==='new';
-  $('chips').style.display = nv ? 'none' : '';
+  $('chips').style.display = $('distBar').style.display = nv ? 'none' : '';
   ['fKind','fStaff','sortKey','sortDir'].forEach(id => $(id).style.display = nv ? 'none' : '');
   $('grp').parentElement.style.display = nv ? 'none' : '';
-  try { const w = newGroups().filter(g => g.st!=='ok').length; $('vNew').textContent = '📦 新品在庫' + (w ? ` ⚠${w}` : ''); } catch(e){}
+  try { const w = newGroups().filter(g => g.st!=='ok').length; $('vNew').textContent = '新品在庫' + (w ? ` ⚠${w}` : ''); } catch(e){}
   const a = filtered(), box = $('content');
   if (S.view==='sum') return renderSum(box);
   if (nv) return renderNew(box);
@@ -821,7 +957,7 @@ function render(){
         return `<div class="tile ${stock===0?'dim':''}" data-g="${i}"><div class="ph ${tot>1?'stack':''}">${stackPhotoHTML(g)}
           <span class="tag" style="--c:${stock===0?'var(--del)':'var(--ok)'}">在庫 ${stock}/${tot}台</span>
           ${over?'<span class="note" style="background:#ffd3d3;color:#8a1515">⚠</span>':''}</div>
-          <div class="info"><div class="nm">${esc(g.key)}</div>
+          <div class="info">${g.first['メーカー']?`<div class="mk">${esc(g.first['メーカー'])}</div>`:''}<div class="nm">${esc(g.key)}</div>
           <div class="sub">${g.c['貸出中']?`貸出中 ${g.c['貸出中']}台　`:''}${g.c['予約中']?`予約中 ${g.c['予約中']}台`:''}${!g.c['貸出中']&&!g.c['予約中']?esc(g.first['型番']||''):''}</div></div></div>`; }).join('') + '</div>';
       box.querySelectorAll('.tile').forEach(e => e.onclick = () => openGroup(gs[+e.dataset.g].key));
     } else {
@@ -843,12 +979,12 @@ function render(){
 function stockCards(a){
   return a.map(it => { const d = derive(it);
     return `<div class="mrow" data-id="${esc(it['ID'])}"><div class="mph">${photoHTML(it)}</div><div class="mmain"><div class="mnm">${esc(it['機種'])} <span class="gk">${esc(goki(it))}</span></div>
-      <div class="msub">${esc(it['ID'])}${it['型番']?'　'+esc(it['型番']):''}</div><div class="msub">${subText(it)}</div></div><span class="badge s-${d.eff}">${d.eff}</span></div>`; }).join('');
+      <div class="msub">${it['メーカー']?esc(it['メーカー'])+'　':''}${esc(it['ID'])}${it['型番']?'　'+esc(it['型番']):''}</div><div class="msub">${subText(it)}</div></div><span class="badge s-${d.eff}">${d.eff}</span></div>`; }).join('');
 }
 function stockTable(a){
   return '<table><thead><tr><th>状態</th><th>ID</th><th>機種</th><th>号機</th><th>型番</th><th>貸出先・予約者</th><th>返却予定</th><th>担当</th></tr></thead><tbody>' +
     a.map(it => { const d=derive(it);
-      return `<tr data-id="${esc(it['ID'])}"><td><span class="badge s-${d.eff}">${d.eff}</span></td><td>${esc(it['ID'])}</td><td>${esc(it['機種'])}</td><td>${esc(goki(it))}</td><td>${esc(it['型番'])}</td><td>${esc(it['状態']==='予約中'?it['予約者']:it['貸出先'])}</td><td>${esc(it['返却期限'])}</td><td>${esc(it['担当者'])}</td></tr>`; }).join('') + '</tbody></table>';
+      return `<tr data-id="${esc(it['ID'])}"><td><span class="badge s-${d.eff}">${d.eff}</span></td><td class="mono">${esc(it['ID'])}</td><td class="nmc">${esc(it['機種'])}${it['メーカー']?`<div class="mksub">${esc(it['メーカー'])}</div>`:''}</td><td>${esc(goki(it))}</td><td class="mono">${esc(it['型番'])}</td><td>${esc(it['状態']==='予約中'?it['予約者']:it['貸出先'])}</td><td>${esc(it['返却期限'])}</td><td>${esc(it['担当者'])}</td></tr>`; }).join('') + '</tbody></table>';
 }
 function renderSum(box){
   const cats = [...new Set(S.items.map(i => i['カテゴリ']||'その他'))];
