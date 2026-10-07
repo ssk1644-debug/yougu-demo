@@ -1098,7 +1098,7 @@ function openDetail(id, keepGroup){
   const st = it['状態'];
   const acts = st==='在庫' ? '<button class="p big" id="dLend">貸出（納品）</button><button class="r big" id="dResv">予約</button>'
     : st==='予約中' ? '<button class="p big" id="dLend">貸出（納品）</button><button class="g big" id="dUnresv">予約を解除</button>'
-    : st==='貸出中' ? '<button class="p big" id="dRet">返却する</button>'
+    : st==='貸出中' ? '<button class="p big" id="dRet">返却する</button><button class="g big" id="dFix">貸出先・日付を直す</button>'
     : '<button class="p big" id="dBack">在庫に戻す</button>';
   $('detailBox').innerHTML = `<h2>${esc(dispName(it))} <span class="badge s-${d.eff}">${d.eff}</span></h2>
    <div class="dph">${photoHTML(it)}</div>
@@ -1118,6 +1118,7 @@ function openDetail(id, keepGroup){
   if ($('dLend')) $('dLend').onclick = () => { close_('mDetail'); openLend(it); };
   if ($('dResv')) $('dResv').onclick = () => { close_('mDetail'); openResv(it); };
   if ($('dUnresv')) $('dUnresv').onclick = async () => { await saveItem({...it,'状態':'在庫','予約者':'','予約日':''}, '予約を解除しました'); close_('mDetail'); };
+  if ($('dFix')) $('dFix').onclick = () => { close_('mDetail'); openLend(it, true); };
   if ($('dRet')) $('dRet').onclick = async () => { if(await run('return',{id:it['ID']},'返却を記録しました')) close_('mDetail'); };
   if ($('dBack')) $('dBack').onclick = async () => { await saveItem({...it,'状態':'在庫'}, '在庫に戻しました'); close_('mDetail'); };
   $('dEdit').onclick = () => { close_('mDetail'); openEdit(it); };
@@ -1207,11 +1208,16 @@ $('eDel').onclick = async () => {
 
 /* ---- 貸出（返却予定日は貸出日の7日後を自動） ---- */
 let dueTouched = false;
-function openLend(it){
-  S.lendId = it['ID']; $('lendName').textContent = `${dispName(it)}（${it['ID']}）`;
+function openLend(it, fix){
+  S.lendId = it['ID']; $('lendName').textContent = `${dispName(it)}（${it['ID']}）` + (fix ? '　貸出情報の修正' : '');
   const t = ymd(todayMid());
   $('lDest').value = it['予約者'] || ''; $('lFrom').value = t; $('lDue').value = addDays(t, DEFAULT_DAYS); dueTouched = false;
   $('lStaff').value = S.lastStaff || S.user || ''; $('lDriver').value = S.lastDriver || ''; $('lNote').value = '';
+  if (fix){   // すでに貸出中の商品の、貸出先・日付・担当を入れ直す（旧アプリから移行した貸出中の商品用）
+    $('lDest').value = (it['貸出先'] && it['貸出先']!=='（未入力）') ? it['貸出先'] : '';
+    $('lFrom').value = it['貸出日'] || t; $('lDue').value = it['返却期限'] || addDays($('lFrom').value, DEFAULT_DAYS); dueTouched = !!it['返却期限'];
+    $('lStaff').value = it['担当者'] || S.lastStaff || S.user || ''; $('lDriver').value = it['配達担当'] || S.lastDriver || '';
+  }
   open_('mLend'); $('lDest').focus();
 }
 $('lFrom').onchange = () => { if(!dueTouched && $('lFrom').value) $('lDue').value = addDays($('lFrom').value, DEFAULT_DAYS); };
