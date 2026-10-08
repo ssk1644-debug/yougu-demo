@@ -725,6 +725,8 @@ tr.sumsub td:first-child{padding-left:28px}
  <div class="f">
   <label>GAS ウェブアプリURL（空欄＝この端末だけの試用モード）<input id="sApi" placeholder="https://script.google.com/macros/s/…/exec"></label>
   <label>合言葉（GAS側の API_TOKEN と同じもの）<input id="sToken"></label>
+  <button type="button" id="sTest" class="g" style="width:100%">接続を確認</button>
+  <div class="hint" id="sTestMsg">入力したURLと合言葉で、サーバーにつながるか確認します（保存前でも押せます）。</div>
   <label>操作者名（付箋・履歴に残ります）<input id="sUser"></label>
   <label>CSVから商品をまとめて取り込む<input type="file" id="sCsv" accept=".csv,text/csv"></label>
   <div class="hint">CSVの1行目は見出し。使える見出し：ID／機種（商品名）／号機／型番／カテゴリ／メーカー／状態／貸出先／貸出日／返却期限／担当者（担当営業）／配達担当（運んだ人）／場所／写真。号機は「①」が名前の末尾にあれば自動で分けます。</div>
@@ -890,15 +892,16 @@ async function api(action, payload={}){
 }
 async function run(action, payload, okMsg){
   try { const j = await api(action, payload); apply(j); if(okMsg) toast(okMsg); return j; }
-  catch(e){ toast('エラー: '+e.message); return null; }
+  catch(e){ toast(errText(e)); return null; }
 }
+function errText(e){ const m = String(e && e.message || e); return /Failed to fetch|NetworkError|Load failed/i.test(m) ? 'サーバーにつながりません。設定の「接続を確認」を押してください' : 'エラー: '+m; }
 function apply(j){
   if (j.items) S.items = j.items;
   if (j.staff) S.staff = j.staff;
   refreshLists(); render();
   const g = $('mGroup').classList.contains('on') && S.openGroup; if (g) openGroup(S.openGroup, true);
 }
-async function reload(){ try { apply(await api('list')); } catch(e){ toast('読込エラー: '+e.message); } }
+async function reload(){ try { apply(await api('list')); } catch(e){ toast('読込エラー: '+errText(e)); } }
 
 /* ---- 絞り込み・ソート ---- */
 function filtered(){
@@ -2288,8 +2291,9 @@ async function seedRegister(){
       toast(`写真を保存中… ${k+1}/${uniq.length}`);
       const du = uniq[k], mime = (du.match(/^data:([^;]+);/)||[])[1] || 'image/jpeg';
       try { const j = await api('photo', {id:'seed'+(k+1), data:du.split(',')[1], mime, dataUrl:du}); urls[du] = j.url || ''; }
-      catch(e){ urls[du] = ''; }
+      catch(e){ urls[du] = ''; if (k===0){ toast(errText(e)); return; } }   // 最初の1枚で失敗＝サーバーにつながっていない。途中で止める
     }
+    const ng = uniq.filter(u => !urls[u]).length; if (ng) toast(`写真 ${ng}枚は保存できませんでした（商品は登録します）`);
     items.forEach(i => { if (i['写真']) i['写真'] = urls[i['写真']] || ''; });
   }
   await run('import', {items}, `${seedModels()}機種・${items.length}台を登録しました`);
@@ -2338,6 +2342,19 @@ $('sCsv').onchange = async e => {
   e.target.value = '';
 };
 $('sSeed').onclick = seedRegister;
+$('sTest').onclick = async () => {
+  const url = $('sApi').value.trim(), tk = $('sToken').value, m = $('sTestMsg'); m.style.color = '';
+  if (!url){ m.textContent = 'URLが空です。空欄のままだと、この端末だけの試用モードになります。'; m.style.color = '#b8860b'; return; }
+  if (!/\/exec$/.test(url)){ m.textContent = 'URLの末尾が「/exec」ではありません。デプロイで発行された「ウェブアプリのURL」をそのまま貼ってください（/dev で終わるものや、スプレッドシートのURLは使えません）。'; m.style.color = '#c0392b'; return; }
+  m.textContent = '確認中…';
+  try {
+    const r = await fetch(`${url}?action=list&token=${encodeURIComponent(tk)}`); const j = await r.json();
+    if (!j.ok){ m.textContent = '✕ つながりましたが断られました：' + (j.error||'') + (/合言葉/.test(j.error||'') ? '（GASのスクリプトプロパティ API_TOKEN と、ここの合言葉を同じにしてください）' : ''); m.style.color = '#c0392b'; }
+    else { m.textContent = `○ つながりました（商品 ${j.items.length}件）。この内容で「保存」を押してください。`; m.style.color = '#1B9A6A'; }
+  } catch(e){
+    m.textContent = '✕ つながりません。GASの「デプロイ」→「デプロイを管理」で、①アクセスできるユーザーが「全員」②新しいバージョンでデプロイ済み、を確認してください。それでも駄目なら、GASの関数 setup を実行して権限を承認し直し、再デプロイしてください。'; m.style.color = '#c0392b';
+  }
+};
 function modeTag(){ $('modeTag').style.display = S.api ? 'none' : ''; }
 
 /* ---- 画面操作 ---- */
