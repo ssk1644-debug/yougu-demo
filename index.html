@@ -735,7 +735,7 @@ tr.sumsub td:first-child{padding-left:28px}
   <label>型番・メーカー・写真を商品名から自動で補う<button type="button" id="sAutoFill" class="g" style="width:100%">🔄 今の商品データに自動補完をかける</button></label>
   <div class="hint" id="sAutoFillHint">商品名（機種）をもとに、空いている「型番」「メーカー」「写真」を分かる範囲で自動入力します。すでに入力済みの項目は変更しません。</div>
  </div>
- <div class="row"><button class="d" id="sReset" style="display:none">試用データを初期化</button><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="sSave">保存</button></div>
+ <div class="row"><button class="d" id="sReset" style="display:none">試用データを全部消す</button><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="sSave">保存</button></div>
 </div></div>
 
 <div id="printArea"></div>
@@ -824,7 +824,7 @@ function seed(){
   return a;
 }
 const local = {
-  load(){ try{ const j=JSON.parse(store.get('dm_items')); if(Array.isArray(j)) return j; }catch(e){} const s=seed(); this.save(s); return s; },
+  load(){ try{ const j=JSON.parse(store.get('dm_items')); if(Array.isArray(j)) return j; }catch(e){} return []; },   // 空のときにサンプルを自動で入れない（立ち上げのたびに試用データが出ないように）
   save(a){ store.set('dm_items', JSON.stringify(a)); }
 };
 const localArr = {
@@ -859,7 +859,7 @@ async function api(action, payload={}){
   if (!S.api) {
     let a = local.load();
     const i = a.findIndex(x => x['ID']===payload.id || (payload.item && x['ID']===payload.item['ID']));
-    if (action==='save'){ const it={...payload.item,'更新日時':nowStr()}; if(i<0) a.push(it); else a[i]=it; }
+    if (action==='save'){ const it={...payload.item,'更新日時':nowStr()}; delete it.__base; if(i<0) a.push(it); else a[i]=it; }
     else if (action==='lend'){
       Object.assign(a[i],{'状態':'貸出中','貸出先':payload.dest,'貸出日':payload.from,'返却期限':payload.due||addDays(payload.from,DEFAULT_DAYS),'担当者':payload.staff,'配達担当':payload.driver||'','予約者':'','予約日':'','更新日時':nowStr()});
       addMemo(a[i], payload.note, payload.user||payload.staff);
@@ -892,7 +892,7 @@ async function api(action, payload={}){
 }
 async function run(action, payload, okMsg){
   try { const j = await api(action, payload); apply(j); if(okMsg) toast(okMsg); return j; }
-  catch(e){ toast(errText(e)); return null; }
+  catch(e){ toast(errText(e)); if (/他の端末/.test(String(e.message))) reload(); return null; }
 }
 function errText(e){ const m = String(e && e.message || e); return /Failed to fetch|NetworkError|Load failed/i.test(m) ? 'サーバーにつながりません。設定の「接続を確認」を押してください' : 'エラー: '+m; }
 function apply(j){
@@ -1003,7 +1003,12 @@ function render(){
   const a = filtered(), box = $('content');
   if (S.view==='sum') return renderSum(box);
   if (nv) return renderNew(box);
-  if (!a.length){ box.innerHTML = '<div class="empty">該当する商品がありません</div>'; return; }
+  if (!a.length){
+    box.innerHTML = S.items.length ? '<div class="empty">該当する商品がありません</div>'
+      : '<div class="empty">商品がまだ登録されていません。<br>「設定」の<b>お店のデモ商品をまとめて登録</b>で、最初の商品を入れられます。<br><button class="p" id="emptySet" style="margin-top:12px">設定を開く</button></div>';
+    const b = $('emptySet'); if (b) b.onclick = () => $('bSet').click();
+    return;
+  }
   if (S.group){
     const gs = groupOf(a);
     if (S.view==='tile'){
@@ -1135,7 +1140,11 @@ function openDetail(id, keepGroup){
   });
   open_('mDetail');
 }
-async function saveItem(item, msg){ return run('save',{item}, msg); }
+async function saveItem(item, msg){
+  const cur = S.items.find(i => i['ID']===item['ID']);   // いま見ている版の更新日時を添える（他端末が先に更新していたらサーバーが止める）
+  if (cur && cur['更新日時']) item = {...item, '__base': cur['更新日時']};
+  return run('save',{item}, msg);
+}
 
 /* ---- 機種まとめ ---- */
 function openGroup(key, quiet){
@@ -1212,7 +1221,7 @@ $('eDel').onclick = async () => {
 /* ---- 貸出（返却予定日は貸出日の7日後を自動） ---- */
 let dueTouched = false;
 function openLend(it, fix){
-  S.lendId = it['ID']; $('lendName').textContent = `${dispName(it)}（${it['ID']}）` + (fix ? '　貸出情報の修正' : '');
+  S.lendFix = !!fix; S.lendId = it['ID']; $('lendName').textContent = `${dispName(it)}（${it['ID']}）` + (fix ? '　貸出情報の修正' : '');
   const t = ymd(todayMid());
   $('lDest').value = it['予約者'] || ''; $('lFrom').value = t; $('lDue').value = addDays(t, DEFAULT_DAYS); dueTouched = false;
   $('lStaff').value = S.lastStaff || S.user || ''; $('lDriver').value = S.lastDriver || ''; $('lNote').value = '';
@@ -1231,7 +1240,7 @@ $('lOk').onclick = async () => {
   if (!due) return toast('返却予定日を入れてください');
   if (due < from) return toast('返却予定日が貸出日より前です');
   S.lastStaff = staff; store.set('dm_staff', staff); S.lastDriver = driver; store.set('dm_driver', driver);
-  if (await run('lend',{id:S.lendId,dest,from,due,staff,driver,note},'貸出を記録しました')) close_('mLend');
+  if (await run('lend',{id:S.lendId,dest,from,due,staff,driver,note,fix:!!S.lendFix},'貸出を記録しました')) close_('mLend');
 };
 
 /* ---- 予約 ---- */
@@ -1414,7 +1423,12 @@ $('bulkGo').onclick = async () => {
     if (!due) return toast('返却予定日を入れてください');
     if (due < from) return toast('返却予定日が貸出日より前です');
     S.lastStaff = staff; store.set('dm_staff', staff); S.lastDriver = driver; store.set('dm_driver', driver);
-    if (await run('lendBulk', {ids:BULK.ids, dest, from, due, staff, driver, note}, `${BULK.ids.length}件を持ち出しとして記録しました`)) close_('mBulk');
+    const jb = await run('lendBulk', {ids:BULK.ids, dest, from, due, staff, driver, note});
+    if (jb){
+      const ng = (jb.results||[]).filter(r => !r.ok).length;
+      toast(ng ? `${BULK.ids.length-ng}件を記録。${ng}件は他の端末で先に貸出中のため記録していません` : `${BULK.ids.length}件を持ち出しとして記録しました`);
+      close_('mBulk');
+    }
   } else {
     if (await run('returnBulk', {ids:BULK.ids}, `${BULK.ids.length}件を返却として記録しました`)) close_('mBulk');
   }
@@ -2131,7 +2145,7 @@ $('sSave').onclick = () => {
   store.set('dm_api',S.api); store.set('dm_token',S.token); store.set('dm_user',S.user);
   close_('mSet'); modeTag(); reload();
 };
-$('sReset').onclick = () => { if(confirm('試用データを初期化します。よろしいですか？')){ local.save(seed()); close_('mSet'); reload(); } };
+$('sReset').onclick = () => { if(confirm('この端末の試用データをすべて消します（サーバーのデータには影響しません）。よろしいですか？')){ local.save([]); close_('mSet'); reload(); } };
 $('sAutoFill').onclick = async () => {
   const changed = []; let nMaker=0, nModel=0, nPhoto=0;
   S.items.forEach(it => { const hit = autoFillProduct(it['機種']); if (!hit) return;
@@ -2355,6 +2369,15 @@ $('sTest').onclick = async () => {
     m.textContent = '✕ つながりません。GASの「デプロイ」→「デプロイを管理」で、①アクセスできるユーザーが「全員」②新しいバージョンでデプロイ済み、を確認してください。それでも駄目なら、GASの関数 setup を実行して権限を承認し直し、再デプロイしてください。'; m.style.color = '#c0392b';
   }
 };
+/* ---- 他の端末の変更を自動で取り込む（本番モードのみ）：画面に戻ったとき＋60秒ごと。入力中（ウィンドウが開いている間）は触らない ---- */
+let _syncBusy = false, _lastSync = Date.now();
+async function autoSync(){
+  if (!S.api || _syncBusy || document.hidden || document.querySelector('.modal.on')) return;
+  _syncBusy = true;
+  try { apply(await api('list')); _lastSync = Date.now(); } catch(e){} finally { _syncBusy = false; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - _lastSync > 5000) autoSync(); });
+setInterval(autoSync, 60000);
 function modeTag(){ $('modeTag').style.display = S.api ? 'none' : ''; }
 
 /* ---- 画面操作 ---- */
