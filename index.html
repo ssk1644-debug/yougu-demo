@@ -573,7 +573,7 @@ tr.sumsub td:first-child{padding-left:28px}
   <label>機種名<input id="eName"></label>
   <div class="two"><label>型番<input id="eModel"></label><label>メーカー<input id="eMaker"></label></div>
   <label>色（カラー）<input id="eColor" list="colorList" placeholder="例 ベージュ（色違いは同じ商品名で、色だけ変えて登録）"></label><datalist id="colorList"><option value="ベージュ"><option value="ブラウン"><option value="モカブラウン"><option value="ブルー"><option value="オレンジ"><option value="レッド"><option value="グリーン"><option value="ピンク"><option value="ホワイト"><option value="ブラック"><option value="グレー"><option value="イエロー"><option value="パープル"><option value="ミスティパープル"><option value="アイボリー"></datalist>
-  <div class="two" id="eClsRow" style="display:none"><label>サイズ（並び順用）<select id="eSize"><option value="">自動（名前から判定）</option><option>大</option><option>中</option><option>小</option></select></label><label>ひじ掛け<select id="eArm"><option value="">自動（名前から判定）</option><option value="付き">肘付き</option><option value="なし">肘なし</option></select></label></div>
+  <div class="two" id="eClsRow" style="display:none"><label>サイズ（並び順用）<select id="eSize"><option value="">自動（名前から判定）</option><option value="大">ワイド</option><option value="中">ミドル</option><option value="小">コンパクト</option></select></label><label>ひじ掛け<select id="eArm"><option value="">自動（名前から判定）</option><option value="付き">肘付き</option><option value="なし">肘なし</option></select></label></div>
   <div class="two"><label>カテゴリ<input id="eCat" list="catList"><datalist id="catList"></datalist></label><label>保管場所<input id="ePlace" list="placeList"><datalist id="placeList"><option value="店"><option value="倉庫"></datalist></label></div>
   <div class="two"><label>区分<select id="eKind"><option value="デモ">デモ品</option><option value="新品">新品在庫</option></select></label><label>状態<select id="eStatus"></select></label></div>
   <label>仕入単価（税抜・任意／仕入れ時の卸価格）<input type="number" id="eCost" min="0" placeholder="例 26400"></label>
@@ -798,7 +798,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.14-1';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.15-2';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 6;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -989,15 +989,29 @@ async function reload(){ if (S.api){ try { const j = await api('list'); S.gasVer
 
 /* ---- 種類順の並び（シャワーチェア＝大→中→小・肘付き→肘なし／浴槽台＝高さ順／グリップ／移乗ボード…） ---- */
 const CLS_DEFAULT = {   // シャワーチェアの標準の分類 [サイズ, ひじ掛け]（商品編集で変えられます）
-  'ユクリアワイドSP U型':['大','付き'],
-  'ユクリアAir ミドルSP':['中','付き'], 'ユクリア ミドルSP':['中','付き'], 'ユクリア ミドル':['中','付き'], 'IS':['中','付き'], 'CPE-N':['中','なし'],
-  'ユクリア コンパクト腰当付き':['小','付き'], 'ISフィット':['小','付き'], 'FSフィット':['小','付き'], 'IS骨盤サポートフィット':['小','付き'], 'ユクリアAir コンパクト':['小','なし']
+  'ユクリアワイドSP U型':['大','付き'], 'IS':['大','付き'],
+  'ユクリアAir ミドルSP':['中','付き'], 'ユクリア ミドルSP':['中','付き'], 'ユクリア ミドル':['中','付き'], 'CPE-N':['中','なし'],
+  'ISフィット':['中','付き'], 'FSフィット':['中','付き'], 'IS骨盤サポートフィット':['中','付き'],
+  'ユクリア コンパクト腰当付き':['小','付き'], 'ユクリアAir コンパクト':['小','なし']
 };
+const CLS_OLD_SIZE = {'IS':'中', 'ISフィット':'小', 'FSフィット':'小', 'IS骨盤サポートフィット':'小'};   // 以前の誤った標準値（手で変えていなければ新しい分類に直す）
+const SZ_LABEL = {'大':'ワイド', '中':'ミドル', '小':'コンパクト'};   // 保存は 大/中/小、画面の表示は ワイド/ミドル/コンパクト
+/* 名前からサイズを判定：コンパクト→コンパクト、ミドル・フィット→ミドル、ワイド・IS・FS（フィット無し）→ワイド */
+function sizeByName(nm){
+  nm = String(nm||'');
+  if (/コンパクト/.test(nm)) return '小';
+  if (/ワイド|大型/.test(nm)) return '大';
+  if (/ミドル|フィット/.test(nm)) return '中';
+  if (/(^|[^A-Za-z])IS(?![A-Za-z])/.test(nm)) return '大';
+  if (/(^|[^A-Za-z])FS(?![A-Za-z])/.test(nm)) return '大';
+  return '';
+}
 function clsInfo(it){
   if ((it['カテゴリ']||'')!=='シャワーチェア') return {size:'', arm:''};
   const nm = it['機種']||'', d = CLS_DEFAULT[nm];
-  let size = it['サイズ']||(d?d[0]:''), arm = it['肘']||(d?d[1]:'');
-  if (!size) size = /ワイド|大型/.test(nm) ? '大' : /コンパクト|フィット/.test(nm) ? '小' : /ミドル/.test(nm) ? '中' : '';
+  let st = it['サイズ']||''; if (st && CLS_OLD_SIZE[nm]===st) st = '';
+  let size = st||(d?d[0]:''), arm = it['肘']||(d?d[1]:'');
+  if (!size) size = sizeByName(nm);
   if (!arm) arm = /ひじ掛け?(な|無)し|肘(な|無)し/.test(nm) ? 'なし' : /ひじ|肘/.test(nm) ? '付き' : '';
   return {size, arm};
 }
@@ -1012,7 +1026,7 @@ let _secPrev = null;
 function secHTML(it){
   if ($('sortKey').value!=='cls' || S.view!=='tile') return '';
   const cat = it['カテゴリ']||'その他', ci = clsInfo(it);
-  const sub = cat==='シャワーチェア' ? `${ci.size?ci.size+'サイズ':'サイズ未設定'}・${ci.arm==='付き'?'肘付き':ci.arm==='なし'?'肘なし':'肘は未設定'}` : '';
+  const sub = cat==='シャワーチェア' ? `${SZ_LABEL[ci.size]||'サイズ未設定'}・${ci.arm==='付き'?'肘付き':ci.arm==='なし'?'肘なし':'肘は未設定'}` : '';
   let h = '';
   if (!_secPrev || _secPrev[0]!==cat){ h += `<div class="sec"><b>${esc(cat)}</b></div>`; }
   if (sub && (!_secPrev || _secPrev[0]!==cat || _secPrev[1]!==sub)) h += `<div class="sec sub">${esc(sub)}</div>`;
@@ -1318,7 +1332,7 @@ function openEdit(it, presetId){
   $('eCat').value = it?.['カテゴリ'] || ''; $('ePlace').value = it?.['場所'] || '店';
   $('eStatus').value = it?.['状態'] || '在庫'; $('eKind').value = it?.['区分'] || 'デモ';
   $('eCost').value = it?.['仕入単価'] || ''; $('eColor').value = it?.['色'] || '';
-  $('eSize').value = it?.['サイズ'] || ''; $('eArm').value = it?.['肘'] || ''; eClsToggle();
+  $('eSize').value = (it && CLS_OLD_SIZE[it['機種']]===it['サイズ']) ? '' : (it?.['サイズ'] || ''); $('eArm').value = it?.['肘'] || ''; eClsToggle();
   const pv = $('ePrev'); if (it?.['写真']){ pv.src = it['写真']; pv.style.display=''; } else { pv.removeAttribute('src'); pv.style.display='none'; }
   $('eDel').style.display = it ? '' : 'none';
   open_('mEdit'); if(!it) $('eName').focus();
@@ -2517,6 +2531,39 @@ async function seedRegister(){
   }
   await run('import', {items}, `${seedModels()}機種・${items.length}台を登録しました`);
 }
+/* 新品の商品名（メーカーの長い表記）から、同じ商品のデモ写真を探す。色違いは同じ商品の写真を使う */
+const NEW_PHOTO_RULES = [
+  [/Air.*ミドルSP/, 'ユクリアAirミドルSPワンタッチ折り畳み'],
+  [/Air.*コンパクト/, 'ユクリアAirコンパクトワンタッチひじ掛けなし'],
+  [/ユクリア.*コンパクト腰当/, 'シャワーチェア ユクリア コンパクト腰当付き おりたたみN'],
+  [/ユクリア.*ミドルSP/, 'シャワーチェア[ユクリア]ミドルSPおりたたみN モカブラウン'],
+  [/ユクリア.*ミドル/, 'シャワーチェア【ユクリア】ミドル折り畳みN'],
+  [/ユクリア.*ワイドSP/, 'ユクリアワイドSPワンタッチU型折り畳みN オレンジ'],
+  [/ISフィット/, '折り畳みシャワーベンチ ISフィット'],
+  [/FSフィット/, '折り畳みシャワーベンチ FSフィット'],
+  [/IS骨盤/, 'おりたたみシャワーベンチIS骨盤サポートフィット'],
+  [/CPE-N/, '背付きシャワーベンチCPE-N'],
+  [/ジャスピタ.*ソフト|ジャスピタソフト/, 'ジャスピタソフト便座 ブラウン'],
+  [/ジャスピタ/, 'ジャスピタ標準便座 ベージュ'],
+  [/ラフィーネ.*ミスティ/, 'ラフィーネ前後傾斜脚ゴム無し プラスチック便座 ミスティパープル'],
+  [/ラフィーネ.*(ブラウン)/, 'ラフィーネ前後傾斜脚ゴム無し プラスチック便座 ブラウン'],
+  [/ラフィーネ/, 'ラフィーネ前後傾斜脚ゴム無し プラスチック便座 ベージュ'],
+  [/ちびくま/, 'FX-CPちびくまくん 補高スペーサー無し'],
+  [/UST-130N/, 'UST-130N'], [/UST-130R/, 'UST-130R'], [/UST-130/, 'UST-130'],
+  [/浴槽台ジャスト.*12-20/, 'ジャスト12-20'], [/浴槽台ジャスト.*16-26/, 'ジャスト16-26'],
+  [/トライタッチ/, 'トライタッチS'],
+  [/補高便座やわらか.*[3３]/, '補高便座やわらか#3'],
+  [/サニタリエース/, 'サニタリエースOD両用式#8'],
+  [/バスベンリー/, 'バスベンリーデラックスⅡ'],
+  [/セレクトR.*跳ね上げ/, '家具調トイレセレクトR跳ね上げ標準便座'],
+  [/セレクトR.*ひじ掛/, '家具調トイレセレクトR ひじ掛けノーマル標準便座'],
+  [/セレクト.*暖房/, '家具調トイレセレクトノーマル暖房便座標準L']
+];
+function newStockPhotoKey(name){
+  const n = String(name||'').replace(/[\s\u3000]+/g,'');
+  for (const [re,key] of NEW_PHOTO_RULES) if (re.test(n)) return key;
+  return '';
+}
 function autoFillProduct(name){
   name = String(name||'').trim();
   const bare = name.replace(/\s*[①-⑳]\s*$/,'').trim();
@@ -2525,6 +2572,7 @@ function autoFillProduct(name){
   for (const h of PRODUCT_HINTS){ if (h.test(name)||h.test(bare)){ maker=h.maker||''; model=h.model||''; if(h.photo) photo=PH_IMG[h.photo]; break; } }
   if (PH_REAL[bare]) photo = PH_REAL[bare];
   else if (PH_REAL[name]) photo = PH_REAL[name];
+  if (!photo){ const k = newStockPhotoKey(name); if (k && PH_REAL[k]) photo = PH_REAL[k]; }   // 新品（メーカー表記の長い名前）→ 同じ商品のデモ写真
   if (!maker && !model && !photo) return null;
   return { maker, model, photo };
 }
