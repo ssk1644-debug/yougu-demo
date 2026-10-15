@@ -105,6 +105,8 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
 #readerArr{width:100%;min-height:200px;background:#000;border-radius:var(--radius-sm);overflow:hidden}
 .abRow{border:1.5px solid var(--line);padding:12px;margin:10px 0;background:#fff}
 .abRow.unk{border-color:#e0a030;background:#fffaf0}
+.nojan{font-size:.7rem;background:#fff3d6;color:#a35f00;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.abRow.hit{outline:2px solid var(--ac,#2f6fd6)}
 .abRow .abName{font-weight:800}.abRow small{color:var(--sub)}
 .abRow .abU{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
 .abRow .abU input{padding:8px;border:1px solid var(--line);border-radius:8px;min-width:0;width:100%}
@@ -647,9 +649,9 @@ tr.sumsub td:first-child{padding-left:28px}
   <div id="abLast" style="display:none"><span id="abLastTx">読み取ると下のリストに追加されます。同じ商品をもう一度読むと、数量が＋1されます。</span><button type="button" id="abUndo" class="g" style="display:none">↩ 取消</button></div>
  </div>
  <div class="f" id="arOne">
-  <label>JAN（箱のバーコードをスキャン）<input id="arJan" inputmode="numeric" autocomplete="off" placeholder="箱のバーコードを読む"></label>
-  <div class="hint" id="arJanHint">商品マスタにあれば、機種名・型番・メーカー・仕入単価が自動で入ります。</div>
-  <div class="row" style="margin:0 0 6px"><button class="g" type="button" id="arMasterBtn">📚 商品マスタから探す</button><label class="chk" style="margin:0"><input type="checkbox" id="arAllField"> 入浴・排泄以外も候補に出す</label></div>
+  <label>JAN（箱のバーコードをスキャン／無ければ空欄でOK）<input id="arJan" inputmode="numeric" autocomplete="off" placeholder="箱のバーコードを読む"></label>
+  <div class="hint" id="arJanHint">商品マスタにあれば、機種名・型番・メーカー・仕入単価が自動で入ります。JANが無い商品は空欄のまま機種名を入れて記録できます（JANは後から「🔗 JANを後から登録」で入れられます）。</div>
+  <div class="row" style="margin:0 0 6px"><button class="g" type="button" id="arMasterBtn">📚 商品マスタから探す</button><button class="g" type="button" id="arJanLater">🔗 JANを後から登録</button><label class="chk" style="margin:0"><input type="checkbox" id="arAllField"> 入浴・排泄以外も候補に出す</label></div>
   <div class="two"><label>入荷日<input type="date" id="arDate"></label><label>数量<input type="number" id="arQty" min="1" value="1"></label></div>
   <label>機種名<input id="arName" list="catNameList"><datalist id="catNameList"></datalist></label>
   <div class="two"><label>型番<input id="arModel"></label><label>メーカー<input id="arMaker"></label></div>
@@ -662,7 +664,7 @@ tr.sumsub td:first-child{padding-left:28px}
  <div class="row stickyact" id="arOneSave"><span class="sp"></span><button class="p" id="arSave">入荷を記録する</button></div>
  <div id="arBatch" style="display:none">
   <div class="f"><label>USB／Bluetoothリーダー用（ここにカーソルを置いて読む）<input id="abJan" inputmode="numeric" autocomplete="off" placeholder="リーダーで次々に読む"></label></div>
-  <div class="row"><button class="g" type="button" id="abMasterBtn">📚 商品マスタから探して追加</button></div>
+  <div class="row"><button class="g" type="button" id="abMasterBtn">📚 商品マスタから探して追加</button><button class="g" type="button" id="abBlank">✏️ JANなしで追加</button><button class="g" type="button" id="abJanLater">🔗 JANを後から登録</button></div>
   <div class="abGuardRow"><label for="abGuard">二重読み取りの防止</label><select id="abGuard"><option value="0">なし</option><option value="0.6">弱（0.6秒）</option><option value="1.2">標準（1.2秒）</option><option value="2.5">強（2.5秒）</option></select></div>
   <div class="hint" id="abGuardHint">同じバーコードが短い間に続けて読めたときは、1回だけ数えます。同じ商品を何個も続けて読むときは「弱」か「なし」にして、数量は＋で直せます。</div>
   <div id="abList"></div>
@@ -675,6 +677,18 @@ tr.sumsub td:first-child{padding-left:28px}
  </div>
  <h3 style="margin:16px 0 6px">入荷履歴</h3>
  <div id="arHistBox" class="wrap"></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- JANを後から登録 -->
+<div class="modal" id="mJan"><div class="box w">
+ <h2>JANを後から登録</h2>
+ <div class="hint">JANが無いまま登録した商品に、あとからJANを結び付けます。登録したJANは、入荷や連続入荷で読み取ると自動で商品名が入り、商品のバーコードを読んだときも商品が開きます。<br>■ 1商品ずつ：行の入力欄を選んで、箱のバーコードをリーダー（またはカメラ）で読む／数字を入力。<br>■ まとめて：JANが入ったExcel・CSV（JAN列と、型番または商品名の列があるもの）を取り込む。</div>
+ <div class="row"><button class="p" type="button" id="jFileBtn">📥 JAN対応表（Excel・CSV）から一括登録</button><button class="g" type="button" id="jCamBtn">📷 カメラで読む</button><input type="file" id="jFile" accept=".xlsx,.xls,.csv" style="display:none"></div>
+ <div id="jCamBox" style="display:none"><div id="readerJan"></div></div>
+ <div class="row"><input id="jQ" type="search" placeholder="🔍 商品名・型番で絞り込み" style="flex:1;min-width:160px;padding:10px;border:1px solid var(--line);border-radius:10px"><label class="chk" style="margin:0"><input type="checkbox" id="jAll"> 新品在庫にない商品も表示</label></div>
+ <div id="jPrev" style="display:none;border:1.5px solid #e0a030;background:#fffaf0;padding:12px;margin:10px 0"></div>
+ <div class="hint" id="jCount" style="margin:8px 0"></div>
+ <div id="jList"></div>
  <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
 </div></div>
 <!-- 発注点 -->
@@ -798,7 +812,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.15-2';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.15-3';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 6;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -1240,7 +1254,7 @@ function refreshLists(){
 
 /* ---- モーダル共通 ---- */
 function open_(id){ $(id).classList.add('on'); }
-function close_(id){ $(id).classList.remove('on'); if(id==='mScan'||id==='mAudit'||id==='mDep'||id==='mBulk'){ stopScan(); kbHandler = handleCode; } if(id==='mGroup') S.openGroup=null; if(id==='mArrival'){ kbHandler = handleCode; stopScan(); $('arCamBox').style.display='none'; } if(id==='mMaster') kbHandler = $('mArrival').classList.contains('on') ? arKb() : handleCode; }
+function close_(id){ $(id).classList.remove('on'); if(id==='mScan'||id==='mAudit'||id==='mDep'||id==='mBulk'){ stopScan(); kbHandler = handleCode; } if(id==='mGroup') S.openGroup=null; if(id==='mArrival'){ kbHandler = handleCode; stopScan(); $('arCamBox').style.display='none'; } if(id==='mMaster') kbHandler = $('mArrival').classList.contains('on') ? arKb() : handleCode; if(id==='mJan'){ stopScan(); $('jCamBox').style.display='none'; $('jCamBtn').textContent='📷 カメラで読む'; kbHandler = $('mArrival').classList.contains('on') ? arKb() : handleCode; } }
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => close_(b.closest('.modal').id));
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('mousedown', e => { if(e.target===m) close_(m.id); }));
 
@@ -1467,7 +1481,10 @@ function handleCode(text){
   const id = codeToId(text);
   close_('mScan');
   const it = S.items.find(x => String(x['ID'])===id);
-  if (it) openDetail(id);
+  const jm = (!it && /^(\d{8}|\d{13})$/.test(id)) ? masterIdx().byJan.get(id) : null;   // 箱のJANバーコード → 商品を開く
+  if (jm && S.items.some(x => x['機種']===jm.name)){ toast('JAN '+id+' → '+jm.name); openGroup(jm.name); }
+  else if (jm){ toast('「'+jm.name+'」は登録済みのJANですが、商品一覧にはまだありません（新品入荷で登録できます）'); }
+  else if (it) openDetail(id);
   else if (confirm(`ID「${id}」は未登録です。新規登録しますか？`)) openEdit(null, id);
 }
 let kbHandler = handleCode;   // 開いているモーダルによって切り替える（棚卸・出発チェック中はそちらへ）
@@ -1854,7 +1871,7 @@ function newGroups(){
     const places = {}; inS.forEach(u => { const pl = u['場所']||'-'; places[pl] = (places[pl]||0)+1; });
     const f = units[0];
     const _fb = units.find(u=>u['写真']) ? '' : photoForName(name, f['型番']);
-    return {name, units, c, stock, total:units.length, min, minSet, st, first: units.find(u=>u['写真'])||(_fb ? {...f,'写真':_fb} : f), cat:f['カテゴリ']||'', model:f['型番']||'', maker:f['メーカー']||'',
+    return {name, units, c, stock, jan:(me&&me.jan)||'', total:units.length, min, minSet, st, first: units.find(u=>u['写真'])||(_fb ? {...f,'写真':_fb} : f), cat:f['カテゴリ']||'', model:f['型番']||'', maker:f['メーカー']||'',
       cmin: costs.length ? Math.min(...costs) : null, cmax: costs.length ? Math.max(...costs) : null, value: costs.reduce((a,b)=>a+b,0), costN: costs.length, places};
   });
 }
@@ -1872,7 +1889,7 @@ function renderNew(box){
   let h = `<div class="nsum">${chip('',all.length,'品目（すべて）','')}${chip('out',cnt.out,'在庫なし','out')}${chip('low',cnt.low,'残りわずか','low')}${chip('ok',cnt.ok,'在庫あり','ok')}` +
     `<div class="chip st"><b>${stockSum}</b><small>在庫 合計台数</small></div><div class="chip st"><b style="font-size:1.05rem">${costN ? valSum.toLocaleString()+'円' : '－'}</b><small>仕入価値（税抜）</small></div></div>` +
     `<div class="ntool"><select id="nsSort"><option value="low">並び：在庫が少ない順</option><option value="many">在庫が多い順</option><option value="name">商品名</option><option value="cat">カテゴリ</option></select>` +
-    `<div class="seg" id="nsMode"><button data-m="card">カード</button><button data-m="table">表</button></div><span class="sp" style="flex:1"></span><button class="p" id="nsIn">🚚 新品入荷</button></div>`;
+    `<div class="seg" id="nsMode"><button data-m="card">カード</button><button data-m="table">表</button></div><span class="sp" style="flex:1"></span><button class="g" id="nsJan">🔗 JANを登録${all.filter(g=>!g.jan).length ? ` (${all.filter(g=>!g.jan).length})` : ''}</button><button class="p" id="nsIn">🚚 新品入荷</button></div>`;
   if (!list.length){
     h += `<div class="empty">${all.length ? 'この条件の商品はありません' : '新品在庫はまだありません。「🚚 新品入荷」で、「商品一覧にも新品在庫として登録する」を付けて入荷すると、ここに並びます。'}</div>`;
   } else if (S.nsMode==='table' && !isMob()){
@@ -1884,7 +1901,7 @@ function renderNew(box){
       const out = [g.c['貸出中'] ? `持出・納品中 ${g.c['貸出中']}台` : '', g.c['予約中'] ? `予約中 ${g.c['予約中']}台` : '', g.c['メンテ中'] ? `メンテ中 ${g.c['メンテ中']}台` : ''].filter(Boolean).join('／');
       const cost = g.cmin==null ? '' : '仕入 ' + (g.cmin===g.cmax ? yenFmt(g.cmin) : yenFmt(g.cmin)+'〜'+yenFmt(g.cmax));
       return `<div class="ncard st-${g.st}" data-n="${i}"><div class="ph">${photoHTML(g.first)}</div><div class="nbody">
-        <div class="nnm">${esc(g.name)}</div><div class="nsub">${esc([g.model,g.maker].filter(Boolean).join('　'))}</div>
+        <div class="nnm">${esc(g.name)}</div><div class="nsub">${esc([g.model,g.maker].filter(Boolean).join('　'))}${g.jan?'':'<span class="nojan">JAN未登録</span>'}</div>
         <div class="nstock"><span class="nnum">${g.stock}</span><span class="nunit">台 在庫</span><span class="nbadge">${NST[g.st]}</span></div>
         <div class="nbar"><i style="width:${pct}%"></i></div>
         <div class="nmeta">${out || '手元にすべてあります'}${pl ? `<br>置き場所：${pl}` : ''}<br>${cost}${cost?'　':''}発注点 ${g.min}台${g.minSet?'':'（標準）'}</div>
@@ -1893,7 +1910,7 @@ function renderNew(box){
   box.innerHTML = h;
   $('nsSort').value = S.nsSort; $('nsSort').onchange = () => { S.nsSort = $('nsSort').value; render(); };
   $('nsMode').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.m===S.nsMode); b.onclick = () => { S.nsMode = b.dataset.m; render(); }; });
-  $('nsIn').onclick = openArrival;
+  $('nsIn').onclick = openArrival; $('nsJan').onclick = openJan;
   box.querySelectorAll('.nsum .chip[data-f]').forEach(e => e.onclick = () => { S.nsFilter = (S.nsFilter===e.dataset.f ? '' : e.dataset.f); render(); });
   box.querySelectorAll('[data-n]').forEach(e => e.onclick = ev => {
     const g = list[+e.dataset.n], a = ev.target.closest('[data-a]');
@@ -2025,7 +2042,7 @@ function abRender(hi){
     const diff = `<div class="hint abDiff" style="margin:4px 0 0;color:var(--over)">${abDiffText(r)}</div>`;
     return `<div class="abRow ${r.known?'':'unk'} ${i===hi?'hit':''}" data-i="${i}">` +
       (r.known ? `<div class="abName">${esc(r.name)}</div><small>${esc([r.model, r.maker, r.jan&&('JAN '+r.jan)].filter(Boolean).join('　'))}</small>`
-               : `<div class="abName" style="color:#a35f00">⚠ 登録のない商品（JAN ${esc(r.jan)}）</div><div class="abU"><input data-f="name" list="catNameList" placeholder="機種名（必須）" value="${esc(r.name)}"><input data-f="model" placeholder="型番" value="${esc(r.model)}"><input data-f="maker" placeholder="メーカー" value="${esc(r.maker)}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(r.cat)}"></div>`) +
+               : `<div class="abName" style="color:#a35f00">${r.jan ? `⚠ 登録のない商品（JAN ${esc(r.jan)}）` : '✏️ JANなしの商品（JANは後から登録できます）'}</div><div class="abU"><input data-f="name" list="catNameList" placeholder="機種名（必須）" value="${esc(r.name)}"><input data-f="model" placeholder="型番" value="${esc(r.model)}"><input data-f="maker" placeholder="メーカー" value="${esc(r.maker)}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(r.cat)}"></div>`) +
       `<div class="abCtl"><div class="stp"><button type="button" data-a="dec" aria-label="減らす">−</button><input class="qty" type="number" min="1" inputmode="numeric" data-f="qty" value="${r.qty}"><button type="button" data-a="inc" aria-label="増やす">＋</button></div>` +
       `<label class="prw"><span>単価</span><input class="pr" type="number" min="0" inputmode="numeric" data-f="price" placeholder="税抜" value="${esc(r.price)}"></label><button type="button" class="g x" data-a="del" title="削除" aria-label="削除">✕</button></div>${diff}</div>`;
   }).join('');
@@ -2045,6 +2062,12 @@ $('abList').addEventListener('click', e => {
 });
 $('abClear').onclick = () => { if (!AB.length || confirm('リストを空にします。よろしいですか？')){ AB = []; abUndoStack = []; abLastScan = {jan:'', t:0}; abRender(); abSay('読み取ると下のリストに追加されます。'); $('abUndo').style.display='none'; } };
 $('abMasterBtn').onclick = openMaster;
+$('abBlank').onclick = () => {
+  const row = {key:'', jan:'', name:'', model:'', maker:'', cat:'', qty:1, price:'', known:false, m:null};
+  AB.push(row); abUndoStack.push({row, created:true}); abRender(AB.length-1);
+  abSay('✏️ JANなしの商品を追加しました。下の黄色の枠に機種名などを入れてください（JANは後から登録できます）', 'warn');
+  const el = $('abList').querySelector(`.abRow[data-i="${AB.length-1}"] input[data-f="name"]`); if (el) el.focus();
+};
 let _abT = 0;
 function abJanFlush(){ const v = $('abJan').value; if (!v.trim()) return; $('abJan').value = ''; batchOnCode(v); }
 $('abJan').oninput = () => { clearTimeout(_abT); const c = mN($('abJan').value).replace(/\D/g,''); if (c && splitJans(c)) _abT = setTimeout(abJanFlush, 250); };
@@ -2089,7 +2112,7 @@ $('abSave').onclick = async () => { if (abBusy) return; abBusy = true; $('abSave
 function arReset(){
   ARM = null;
   ['arJan','arName','arModel','arMaker','arCat','arSupplier','arPrice','arNote'].forEach(id => $(id).value = '');
-  $('arQty').value = 1; $('arJanHint').textContent = '商品マスタにあれば、機種名・型番・メーカー・仕入単価が自動で入ります。'; $('arPriceHint').innerHTML = '';
+  $('arQty').value = 1; $('arJanHint').textContent = '商品マスタにあれば、機種名・型番・メーカー・仕入単価が自動で入ります。JANが無い商品は空欄のまま機種名を入れて記録できます（JANは後から「🔗 JANを後から登録」で入れられます）。'; $('arPriceHint').innerHTML = '';
 }
 async function openArrival(){
   arReset(); $('arDate').value = ymd(todayMid()); $('arPlace').value='店'; $('arAddStock').checked = true;
@@ -2102,6 +2125,136 @@ $('arName').oninput = () => {
   const hit = autoFillProduct($('arName').value);
   if (hit){ if(!$('arModel').value && hit.model) $('arModel').value = hit.model; if(!$('arMaker').value && hit.maker) $('arMaker').value = hit.maker; }
 };
+/* ---- 🔗 JANを後から登録（JANが無いまま登録した商品に、あとでJANを結び付ける） ---- */
+const jNorm = s => mN(s).toLowerCase().replace(/[\s\-‐‑–ー_・()（）\[\]［］【】\/]/g,'');
+let J = {all:false, active:0, rows:[], busy:false};
+function janTargets(){
+  const idx = masterIdx(), t = new Map(), ns = new Map();
+  S.items.forEach(i => { if (i['区分']==='新品' && i['状態']!=='廃棄' && i['機種']){ const o = ns.get(i['機種']) || {n:0, f:i}; if (i['状態']==='在庫') o.n++; ns.set(i['機種'], o); } });
+  ns.forEach((o, name) => { const m = idx.byName.get(name); if (m && m.jan) return;
+    t.set(name, {name, m:m||null, model:(m&&m.model)||o.f['型番']||'', maker:(m&&m.maker)||o.f['メーカー']||'', cat:(m&&m.cat)||o.f['カテゴリ']||'', stock:o.n, ns:true}); });
+  idx.list.forEach(m => { if (m.jan || t.has(m.name)) return; t.set(m.name, {name:m.name, m, model:m.model||'', maker:m.maker||'', cat:m.cat||'', stock:0, ns:false}); });
+  return [...t.values()].sort((a,b) => (b.ns-a.ns) || a.name.localeCompare(b.name,'ja',{numeric:true}));
+}
+function jEntry(t, jan){
+  return t.m ? {...t.m, jan} : {key:'N:'+t.name, jan, name:t.name, model:t.model, maker:t.maker, cat:t.cat, field:MASTER_FIELD[t.cat]||'その他', cost:null, hist:[], retail:null, last:''};
+}
+function jRender(){
+  const q = mN($('jQ').value).toLowerCase().split(/\s+/).filter(Boolean);
+  const rows = janTargets().filter(t => (J.all || t.ns) && q.every(w => mN([t.name,t.model,t.maker].join(' ')).toLowerCase().includes(w)));
+  J.rows = rows.slice(0, 200);
+  $('jCount').textContent = `JAN未登録：${rows.length}件` + (rows.length>200 ? '（上位200件を表示。絞り込んでください）' : '');
+  $('jList').innerHTML = J.rows.length ? J.rows.map((t,i) => `<div class="abRow ${i===J.active?'hit':''}" data-i="${i}"><div class="abName">${esc(t.name)}</div><small>${esc([t.model, t.maker, t.ns ? '在庫 '+t.stock+'台' : ''].filter(Boolean).join('　'))}</small>` +
+      `<div class="row" style="margin:6px 0 0"><input class="jin" inputmode="numeric" autocomplete="off" placeholder="JAN（読み取る／数字を入力）" style="flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="p" type="button" data-a="save">登録</button></div></div>`).join('')
+    : '<div class="hint" style="margin:10px 0">JAN未登録の商品はありません。</div>';
+}
+async function jSave(i, raw){
+  const t = J.rows[i]; if (!t || J.busy) return;
+  const inp = $('jList').querySelectorAll('.jin')[i];
+  const code = mN(raw!=null ? raw : (inp ? inp.value : '')).replace(/\D/g,''); if (!code) return;
+  if (!mJanOk(code)){ beep(false); return toast('JANの数字が正しくありません（'+code+'）。もう一度読み取ってください'); }
+  const dup = masterIdx().byJan.get(code);
+  if (dup && dup.name!==t.name){ beep(false); return toast(`このJANはすでに「${dup.name}」に登録されています`); }
+  J.busy = true;
+  try { const j = await apiMaster('masterSave', {entries:[jEntry(t, code)]}); S.master = j.master||[]; masterDirty(); }
+  catch(err){ J.busy = false; return toast('保存に失敗: '+err.message); }
+  J.busy = false; beep(true); toast(`✅ ${t.name} のJANを登録しました`);
+  J.active = i; jRender(); render();
+  const n = $('jList').querySelectorAll('.jin')[Math.min(i, J.rows.length-1)]; if (n && !isMob()) n.focus();
+}
+let _jT = 0;
+$('jList').addEventListener('focusin', e => { const r = e.target.closest('.abRow'); if (r){ J.active = Number(r.dataset.i); } });
+$('jList').addEventListener('input', e => {
+  if (!e.target.classList.contains('jin')) return; const i = Number(e.target.closest('.abRow').dataset.i);
+  clearTimeout(_jT); const c = mN(e.target.value).replace(/\D/g,''); if (/^(\d{8}|\d{13})$/.test(c)) _jT = setTimeout(() => jSave(i), 300);
+});
+$('jList').addEventListener('keydown', e => { if (e.key==='Enter' && e.target.classList.contains('jin')){ e.preventDefault(); clearTimeout(_jT); jSave(Number(e.target.closest('.abRow').dataset.i)); } });
+$('jList').addEventListener('click', e => { const b = e.target.closest('[data-a="save"]'); if (b) jSave(Number(b.closest('.abRow').dataset.i)); });
+$('jQ').oninput = () => { J.active = 0; jRender(); };
+$('jAll').onchange = () => { J.all = $('jAll').checked; J.active = 0; jRender(); };
+function jOnCode(text){   // USB/Bluetoothリーダー・カメラ：いま選んでいる行のJANとして登録
+  const c = mN(text).replace(/\D/g,''); if (!/^(\d{8}|\d{13})$/.test(c)) return;
+  jSave(Math.min(J.active, J.rows.length-1), c);
+}
+function jCamOnCode(txt){
+  const c = mN(txt).replace(/\D/g,''), now = Date.now(); if (!mJanOk(c)) return;
+  if (c!==camCand.code || now-camCand.t > 1000) camCand = {code:c, n:1, t:now}; else { camCand.n++; camCand.t = now; }
+  if (camCand.n < 2) return;
+  if (c===camSeen.code && now-camSeen.t < 2000){ camSeen.t = now; return; }
+  camSeen = {code:c, t:now}; jSave(Math.min(J.active, J.rows.length-1), c);
+}
+$('jCamBtn').onclick = () => {
+  if (scanner){ stopScan(); $('jCamBox').style.display='none'; $('jCamBtn').textContent='📷 カメラで読む'; return; }
+  $('jCamBox').style.display=''; $('jCamBtn').textContent='📷 カメラを止める'; camCand = {code:'', n:0, t:0}; camSeen = {code:'', t:0};
+  startScan('readerJan', jCamOnCode, true);
+};
+async function openJan(){
+  J = {all:false, active:0, rows:[], busy:false}; $('jAll').checked = false; $('jQ').value = ''; $('jPrev').style.display = 'none';
+  open_('mJan'); kbHandler = jOnCode; jRender();
+  await loadMaster(); jRender();
+  const n = $('jList').querySelector('.jin'); if (n && !isMob()) n.focus();
+}
+$('arJanLater').onclick = openJan; $('abJanLater').onclick = openJan;
+/* JAN対応表（Excel・CSV）から一括登録：JAN列と、型番／商品名の列で、JAN未登録の商品に当てはめる */
+let JPEND = null;
+$('jFileBtn').onclick = () => $('jFile').click();
+$('jFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await jReadFile(f); };
+function jFixJan(v){
+  let c = (typeof v==='number') ? String(Math.round(v)) : mN(v).replace(/\.0+$/,'');
+  c = c.replace(/\D/g,''); if (c.length===12 || c.length===7) c = '0'+c; return c;
+}
+async function jReadFile(f){
+  if (typeof XLSX==='undefined') return toast('Excel読込ライブラリを読み込めません（ネット接続を確認してください）');
+  let rows;
+  try {
+    const buf = await f.arrayBuffer(); let wb;
+    if (/\.csv$/i.test(f.name)){ let txt = new TextDecoder('utf-8').decode(buf); if (txt.includes('�')) txt = new TextDecoder('shift_jis').decode(buf); wb = XLSX.read(txt, {type:'string', raw:true}); }
+    else wb = XLSX.read(buf, {type:'array'});
+    rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:'', raw:true});
+  } catch(err){ return toast('ファイルを読めませんでした: '+err.message); }
+  if (!rows.length) return toast('ファイルに行がありません');
+  const keys = Object.keys(rows[0]);
+  const janKey = keys.find(k => /JAN|ＪＡＮ|ジャン|バーコード|EAN/i.test(mN(k)));
+  if (!janKey) return toast('「JAN」の列が見つかりません（1行目に「JAN」「JANコード」「バーコード」などの見出しが必要です）');
+  const modelKeys = keys.filter(k => k!==janKey && /型番|品番|商品コード|SKU|品目コード/i.test(mN(k)));
+  const nameKeys = keys.filter(k => k!==janKey && !modelKeys.includes(k) && /商品名|品名|機種|名称|商品/.test(mN(k)));
+  if (!modelKeys.length && !nameKeys.length) return toast('「型番（品番）」か「商品名」の列が必要です');
+  const targets = janTargets(), idx = masterIdx();
+  const byModel = new Map(), byName = new Map();
+  targets.forEach(t => { const mk = jNorm(t.model); if (mk) byModel.set(mk, (byModel.get(mk)||[]).concat(t)); const nk = jNorm(t.name); if (nk) byName.set(nk, (byName.get(nk)||[]).concat(t)); });
+  const matched = [], usedT = new Set(), usedJ = new Set(); let bad = 0, none = 0, amb = 0, conflict = 0, already = 0;
+  rows.forEach(r => {
+    const jan = jFixJan(r[janKey]); if (!jan) return;
+    if (!mJanOk(jan)){ bad++; return; }
+    let cand = null, ambig = false;
+    for (const k of modelKeys){ const v = jNorm(r[k]); if (!v) continue; const l = byModel.get(v); if (l){ if (l.length===1){ cand = l[0]; break; } ambig = true; } }
+    if (!cand){
+      for (const k of nameKeys){ const v = jNorm(r[k]); if (!v) continue; const l = byName.get(v); if (l){ if (l.length===1){ cand = l[0]; break; } ambig = true; }
+        else if (v.length>=6){ const l2 = targets.filter(t => { const n = jNorm(t.name); return n.includes(v) || v.includes(n); }); if (l2.length===1){ cand = l2[0]; break; } if (l2.length>1) ambig = true; } }
+    }
+    if (!cand){ if (ambig) amb++; else none++; return; }
+    const dup = idx.byJan.get(jan); if (dup && dup.name!==cand.name){ conflict++; return; }
+    if (usedT.has(cand.name) || usedJ.has(jan)){ already++; return; }
+    usedT.add(cand.name); usedJ.add(jan); matched.push({t:cand, jan});
+  });
+  JPEND = matched;
+  const ex = matched.slice(0,6).map(x => `<div style="font-size:.85rem">・${esc(x.t.name)} ← <b>${esc(x.jan)}</b></div>`).join('');
+  $('jPrev').style.display = '';
+  $('jPrev').innerHTML = `<div style="font-weight:800">${rows.length}行を読み取りました</div>
+    <div style="margin:6px 0">JAN未登録の商品に当てはまった：<b>${matched.length}件</b><br><span style="color:var(--sub);font-size:.85rem">当てはまらない ${none}行／候補が複数で決められない ${amb}行／JANの数字が不正 ${bad}行／すでに別の商品で使用中 ${conflict}行／重複 ${already}行</span></div>${ex}${matched.length>6?`<div style="font-size:.85rem;color:var(--sub)">…ほか${matched.length-6}件</div>`:''}
+    <div class="row" style="margin-top:10px"><button class="g" type="button" id="jCancel">やめる</button><span class="sp"></span><button class="p" type="button" id="jGo" ${matched.length?'':'disabled'}>この内容で登録する</button></div>`;
+  $('jCancel').onclick = () => { JPEND = null; $('jPrev').style.display = 'none'; };
+  $('jGo').onclick = async () => {
+    if (!JPEND || !JPEND.length) return; $('jGo').disabled = true;
+    try {
+      const ents = JPEND.map(x => jEntry(x.t, x.jan)); let last;
+      for (let i=0; i<ents.length; i+=100){ last = await apiMaster('masterSave', {entries: ents.slice(i, i+100)}); }
+      S.master = (last && last.master) || S.master; masterDirty();
+      toast(`${ents.length}件のJANを登録しました`);
+    } catch(err){ $('jGo').disabled = false; return toast('保存に失敗: '+err.message); }
+    JPEND = null; $('jPrev').style.display = 'none'; jRender(); render();
+  };
+}
 /* 入荷を記録するたびに、商品マスタへ覚えさせる（初めてのJAN・単価の変化） */
 async function learnMaster(rec, cat){
   const jan = rec['JAN']||'', idx = masterIdx(), date = rec['日付'];
