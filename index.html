@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#EEF1F5;--card:#fff;--tx:#101B2B;--sub:#677588;--line:#DFE4EB;--pri:#15294A;--pri-dk:#0A1830;--navy:#0F1D33;--navy2:#1B3050;--red:#d9392b;
@@ -272,6 +273,14 @@ header h1{white-space:nowrap}
 #abLast.err{background:#fde8e8;color:#9c1c1c}
 @keyframes flashWarn{0%{background:#ffd98a}100%{background:#fff3d6}}
 #abLast.warn.flash{animation:flashWarn .6s ease-out}
+.xw{position:relative;display:block}
+.xw input{width:100%;box-sizing:border-box;padding-right:46px!important}.xw.hp input{padding-right:92px!important}
+.xw .xc,.xw .xp{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;min-height:0;padding:0;border:0;border-radius:50%;background:var(--line,#e3e7ee);color:var(--tx,#233);font-size:1rem;line-height:1;box-shadow:none;cursor:pointer}
+.xw .xc{right:6px;display:none}.xw .xp{right:48px;font-size:1.1rem}
+.xw input:not(:placeholder-shown) ~ .xc{display:block}
+#mPad{z-index:70}#mPad .box{max-width:340px}
+#padVal{font-size:1.5rem;font-weight:800;letter-spacing:.05em;padding:12px;border:1.5px solid var(--line);border-radius:12px;min-height:3.2rem;word-break:break-all;background:#fbfcfe;margin:8px 0;font-variant-numeric:tabular-nums}
+.padg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.padg button{min-height:56px;font-size:1.4rem;font-weight:800}
 .abGuardRow{display:flex;align-items:center;gap:10px;margin:8px 0 0}
 .abGuardRow label{font-size:.82rem;font-weight:800;color:var(--sub);flex:none}
 .abGuardRow select{flex:1;min-width:0;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fbfcfe;font-size:16px}
@@ -643,7 +652,7 @@ tr.sumsub td:first-child{padding-left:28px}
  <h2>新品入荷・入荷履歴</h2>
  <div class="hint arHint">新品を仕入れた時の記録です。「商品一覧にも登録する」を付けると、数量ぶんの号機が自動発行され、バーコードで印刷・管理できるようになります。</div>
  <div class="seg" id="arMode" style="margin:8px 0"><button data-m="one" class="on">1商品ずつ</button><button data-m="batch">🔁 連続で読む</button></div>
- <div class="row" style="margin:6px 0"><button class="p" type="button" id="arCamBtn">📷 カメラで読む</button></div>
+ <div class="row" style="margin:6px 0"><button class="p" type="button" id="arCamBtn">📷 カメラで読む</button><button class="g" type="button" id="arClear">🧹 入力をクリア（やり直し）</button><button class="g" type="button" id="arNmBtn">🏷 名前を入れる</button></div>
  <div id="arStick">
   <div id="arCamBox" style="display:none"><div style="position:relative"><div id="readerArr"></div><button type="button" id="arCamStop" aria-label="カメラを止める">✕</button></div><div class="hint arHint2">箱のバーコード（JAN）を枠に合わせてください。連続モードでは、読めるたびに音とバイブで知らせます。</div></div>
   <div id="abLast" style="display:none"><span id="abLastTx">読み取ると下のリストに追加されます。同じ商品をもう一度読むと、数量が＋1されます。</span><button type="button" id="abUndo" class="g" style="display:none">↩ 取消</button></div>
@@ -666,6 +675,7 @@ tr.sumsub td:first-child{padding-left:28px}
   <div class="f"><label>USB／Bluetoothリーダー用（ここにカーソルを置いて読む）<input id="abJan" inputmode="numeric" autocomplete="off" placeholder="リーダーで次々に読む"></label></div>
   <div class="row"><button class="g" type="button" id="abMasterBtn">📚 商品マスタから探して追加</button><button class="g" type="button" id="abBlank">✏️ JANなしで追加</button><button class="g" type="button" id="abJanLater">🔗 JANを後から登録</button></div>
   <div class="abGuardRow"><label for="abGuard">二重読み取りの防止</label><select id="abGuard"><option value="0">なし</option><option value="0.6">弱（0.6秒）</option><option value="1.2">標準（1.2秒）</option><option value="2.5">強（2.5秒）</option></select></div>
+  <div class="abGuardRow"><label for="abVoice">🔊 読み上げ</label><select id="abVoice"><option value="0">しない</option><option value="-1">読むたびに「○個」＋止まって3秒後に合計</option><option value="2">読み取りが止まって2秒後</option><option value="3">読み取りが止まって3秒後</option><option value="5">読み取りが止まって5秒後</option></select><button class="g" type="button" id="abSayNow">いま読み上げ</button></div>
   <div class="hint" id="abGuardHint">同じバーコードが短い間に続けて読めたときは、1回だけ数えます。同じ商品を何個も続けて読むときは「弱」か「なし」にして、数量は＋で直せます。</div>
   <div id="abList"></div>
   <div class="f">
@@ -691,6 +701,25 @@ tr.sumsub td:first-child{padding-left:28px}
  <div class="hint" id="jCount" style="margin:8px 0"></div>
  <div id="jList"></div>
  <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 名前を入れる（JANだけ控えた商品） -->
+<div class="modal" id="mNm"><div class="box w">
+ <h2>名前を入れる（JANだけ控えた商品）</h2>
+ <div class="hint">入荷のとき、マスタにないバーコードはJANだけ控えて登録できます。ここで商品名・型番・メーカーを入れると、在庫・入荷履歴の名前が書き換わり、次回からそのJANで商品名が自動で入ります。</div>
+ <div id="nmList"></div>
+ <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
+</div></div>
+<!-- 数字キーパッド（BluetoothリーダーをつないでいるとiPadのキーボードが出ないときの手入力用） -->
+<div class="modal" id="mPad"><div class="box">
+ <h2 id="padTitle">数字を入力</h2>
+ <div id="padVal"></div>
+ <div class="padg">
+  <button class="g" type="button" data-k="1">1</button><button class="g" type="button" data-k="2">2</button><button class="g" type="button" data-k="3">3</button>
+  <button class="g" type="button" data-k="4">4</button><button class="g" type="button" data-k="5">5</button><button class="g" type="button" data-k="6">6</button>
+  <button class="g" type="button" data-k="7">7</button><button class="g" type="button" data-k="8">8</button><button class="g" type="button" data-k="9">9</button>
+  <button class="g" type="button" data-k="C">全部消す</button><button class="g" type="button" data-k="0">0</button><button class="g" type="button" data-k="B">⌫</button>
+ </div>
+ <div class="row" style="margin-top:10px"><button class="g" data-close>やめる</button><span class="sp"></span><button class="p" type="button" id="padOk">入力する</button></div>
 </div></div>
 <!-- 発注点 -->
 <div class="modal" id="mMin"><div class="box">
@@ -813,7 +842,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.15-5';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.16-2';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 6;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -876,6 +905,7 @@ function fbFlash(c){ const f = $('fbFlash'); if (!f) return; f.className = ''; v
 function fb(kind){
   if (kind==='tap'){ fbTone(660, 0, .045, .05); fbVib(8); }
   else if (kind==='scan'){ fbTone(1480, 0, .11, .16); fbVib(45); fbFlash('ok'); }
+  else if (kind==='again'){ const n = Math.min(Math.max(+arguments[1]||2, 2), 5); for (let i=0;i<n;i++) setTimeout(() => fbTone(1100 + i*120, 0, .07, .16), i*110); fbVib(Array.from({length:n*2-1},(_,i)=>i%2?40:35)); fbFlash('ok'); }   // 同じ商品をもう一度：「ピッ」がn回（×2＝2回、×3＝3回）
   else if (kind==='ok'){ fbTone(880, 1320, .2, .12); fbVib([30,40,30]); }
   else if (kind==='ng'){ fbTone(240, 180, .34, .16); fbVib([90,50,90]); fbFlash('ng'); }
 }
@@ -1438,8 +1468,60 @@ function stopScan(){
   try { const r = s.stop(); if (r && r.then) r.then(() => { try { s.clear(); } catch(e){} }).catch(() => {}); }
   catch(e){}
 }
+/* カメラ読取（自前）：縦・横どちらのバーコードも読める（画面を回さなくてよい）。ZXing＋端末の読取機能(BarcodeDetector)があれば優先 */
 function startScan(readerDivId, onCode, jan){
   stopScan();
+  const box = $(readerDivId); if (!box) return;
+  const Z = window.ZXing, canND = typeof BarcodeDetector !== 'undefined';
+  if (!Z && !canND) return startScanLegacy(readerDivId, onCode, jan);
+  const quiet = /^(camOnCode|batchOnCode|arrivalOnCode)$/.test(onCode.name||'');
+  const give = txt => { const n = Date.now(); if (!quiet && (txt !== startScan._l || n - startScan._t > 1500)) fb('scan'); startScan._l = txt; startScan._t = n; onCode(txt); };
+  box.innerHTML = '';
+  const video = document.createElement('video'); video.setAttribute('playsinline',''); video.setAttribute('muted',''); video.muted = true; video.autoplay = true; box.appendChild(video);
+  const st = {custom:true, stopped:false, stream:null, timer:0, n:0};
+  st.stop = () => { st.stopped = true; clearTimeout(st.timer); try { if (st.stream) st.stream.getTracks().forEach(t => t.stop()); } catch(e){} try { video.srcObject = null; } catch(e){} try { box.innerHTML = ''; } catch(e){} };
+  scanner = st; startScan._cur = {id:readerDivId, onCode, jan};
+  let nd = null, rd = null;
+  if (canND){ try { nd = new BarcodeDetector({formats: jan ? ['ean_13','ean_8','upc_a','code_128'] : ['code_128','qr_code']}); } catch(e){ nd = null; } }
+  if (!nd && Z){
+    const B = Z.BarcodeFormat, h = new Map();
+    h.set(Z.DecodeHintType.POSSIBLE_FORMATS, jan ? [B.EAN_13, B.EAN_8, B.UPC_A, B.CODE_128] : [B.CODE_128, B.QR_CODE]);
+    h.set(Z.DecodeHintType.TRY_HARDER, true);
+    rd = new Z.MultiFormatReader(); rd.setHints(h);
+  }
+  if (!nd && !rd){ st.stop(); scanner = null; return startScanLegacy(readerDivId, onCode, jan); }
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', {willReadFrequently:true});
+  function zx(img, rot){
+    const w = img.width, h = img.height, d = img.data, lum = new Uint8ClampedArray(w*h);
+    if (!rot){ for (let i=0, j=0; i<lum.length; i++, j+=4) lum[i] = (d[j]*77 + d[j+1]*150 + d[j+2]*29) >> 8; }
+    else { for (let y=0; y<h; y++) for (let x=0; x<w; x++){ const j = (y*w+x)*4; lum[x*h + (h-1-y)] = (d[j]*77 + d[j+1]*150 + d[j+2]*29) >> 8; } }
+    const src = new Z.RGBLuminanceSource(lum, rot ? h : w, rot ? w : h);
+    try { return rd.decodeWithState(new Z.BinaryBitmap(new Z.HybridBinarizer(src))).getText(); } catch(e){ return null; }
+  }
+  async function loop(){
+    if (st.stopped) return;
+    try {
+      if (video.readyState >= 2 && video.videoWidth){
+        const vw = video.videoWidth, vh = video.videoHeight, sc = Math.min(1, 1280/Math.max(vw, vh)), w = Math.round(vw*sc), h = Math.round(vh*sc);
+        if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+        cx.drawImage(video, 0, 0, w, h);
+        let txt = null;
+        if (nd){ const r = await nd.detect(cv); if (r && r.length) txt = r[0].rawValue; }
+        else { const img = cx.getImageData(0, 0, w, h); txt = zx(img, st.n++ % 2); }   // 横 → 縦 → 横 … と交互に試す
+        if (txt && !st.stopped) give(txt);
+      }
+    } catch(e){}
+    if (!st.stopped) st.timer = setTimeout(loop, 80);
+  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}}, audio:false}).then(stream => {
+    if (st.stopped){ stream.getTracks().forEach(t => t.stop()); return; }
+    st.stream = stream; video.srcObject = stream;
+    try { const tr = stream.getVideoTracks()[0], cp = tr.getCapabilities ? tr.getCapabilities() : null; if (cp && cp.focusMode && cp.focusMode.includes('continuous')) tr.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(() => {}); } catch(e){}
+    return video.play();
+  }).then(() => { if (!st.stopped) loop(); })
+    .catch(() => { if (!st.stopped) toast('カメラを起動できません。端末の設定でカメラを「許可」にするか、ID手入力をご利用ください'); });
+}
+function startScanLegacy(readerDivId, onCode, jan){
   if (typeof Html5Qrcode === 'undefined') return toast('読取ライブラリを読み込めません（通信を確認）');
   const F = window.Html5QrcodeSupportedFormats;
   const fm = F ? (jan ? [F.EAN_13, F.EAN_8, F.UPC_A, F.CODE_128] : [F.CODE_128, F.QR_CODE]) : null;   // JAN(EAN)読取は新品入荷用
@@ -1457,7 +1539,7 @@ function _rotCheck(){
   _rotT = setTimeout(() => {
     const land = innerWidth >= innerHeight, c = startScan._cur;
     if (land === _rotMode) return; _rotMode = land;
-    if (!c || !scanner) return;
+    if (!c || !scanner || scanner.custom) return;   // 自前のカメラ読取は回転しても入れ直さない
     const el = $(c.id); if (!el || !el.offsetParent) return;
     stopScan();
     setTimeout(() => { const e2 = $(c.id); if (e2 && e2.offsetParent && !scanner) startScan(c.id, c.onCode, c.jan); }, 500);
@@ -1486,7 +1568,7 @@ function handleCode(text){
   if (jm && S.items.some(x => x['機種']===jm.name)){ toast('JAN '+id+' → '+jm.name); openGroup(jm.name); }
   else if (jm){ toast('「'+jm.name+'」は登録済みのJANですが、商品一覧にはまだありません（新品入荷で登録できます）'); }
   else if (it) openDetail(id);
-  else if (mJanOk(id) && confirm(`このバーコード（JAN ${id}）は未登録です。どの商品のJANか、結び付けますか？\n（キャンセルすると、商品IDとして新規登録します）`)) openJan(id);
+  else if (/^(\d{8}|\d{13})$/.test(id) && mJanOk(id)) toast('このバーコード（JAN '+id+'）は登録がありません。新品を仕入れたときは「新品入荷」から登録してください');
   else if (confirm(`ID「${id}」は未登録です。新規登録しますか？`)) openEdit(null, id);
 }
 let kbHandler = handleCode;   // 開いているモーダルによって切り替える（棚卸・出発チェック中はそちらへ）
@@ -1847,7 +1929,16 @@ $('mQ').oninput = renderMaster; $('mField').onchange = renderMaster;
 $('mFile').onchange = async e => { const fs = [...e.target.files]; e.target.value=''; if (!fs.length) return; const csv = fs.filter(f => /\.csv$/i.test(f.name)), xl = fs.filter(f => !/\.csv$/i.test(f.name)); if (xl.length) await importWelfan(xl); if (csv.length) await importKaien(csv); };
 
 /* ---- 新品入荷 ---- */
+const NONAME = '【名称未入力】';   // JANだけ控えた商品の仮の名前（後で商品名を入れる）
 let ARM = null;   // 今選ばれている商品マスタの項目
+/* 読み取った文字列からJANを取り出す：同じJANが2回つながって入った時は1つにし、複数の違うJANなら受け付けない */
+function janFromRaw(raw){
+  const c = mN(raw).replace(/\D/g,''); if (!c) return {empty:true};
+  if (c.length===8 || c.length===13) return {jan:c};
+  const parts = splitJans(c); if (!parts) return {bad:c};
+  const u = [...new Set(parts)]; return u.length===1 ? {jan:u[0]} : {multi:u};
+}
+let _apl = {jan:'', t:0};
 function priceHint(){
   const cur = $('arPrice').value, m = ARM;
   if (!m || m.cost==null){ $('arPriceHint').innerHTML = ''; return; }
@@ -1865,22 +1956,32 @@ function fillFromMaster(m, quiet){
   priceHint(); open_('mArrival');
   if (!quiet){ $('arQty').focus(); $('arQty').select(); }
 }
+function blurActive(){ try { const a = document.activeElement; if (a && a !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) a.blur(); } catch(e){} }
 function applyJan(raw){
-  const code = mN(raw).replace(/\D/g,''); if (!code) return;
+  const r = janFromRaw(raw); if (r.empty) return;
+  if (r.multi){ beep(false); $('arJan').value = ''; blurActive(); return toast('違うバーコードが続けて読み込まれました。1つずつ読んでください'); }
+  if (r.bad){ beep(false); $('arJan').value = ''; blurActive(); return toast('JANの桁数が合いません（'+r.bad+'）。もう一度読んでください'); }
+  const code = r.jan, now = Date.now();
+  if (code===_apl.jan && now-_apl.t < 2500){ _apl.t = now; return; }   // 同じバーコードが続けて2回届いたとき（二重読み）は1回だけ
+  _apl = {jan:code, t:now};
   const m = masterIdx().byJan.get(code);
-  if (m) return fillFromMaster(m);
+  if (m){ fillFromMaster(m, true); blurActive(); return; }   // 個数欄・名前欄にカーソルを移さない（次の読み取りが入り込むため）
   ARM = null; $('arJan').value = code; $('arPriceHint').innerHTML = '';
-  $('arJanHint').innerHTML = `⚠ このJAN（${esc(code)}）は商品マスタにありません。機種名を入力して「入荷を記録する」を押すと、次回から自動で入ります。<br><button class="g" type="button" onclick="openJan('${esc(code)}')">🔗 すでにある商品に結び付ける（入荷はしない）</button>`;
-  $('arName').focus();
+  $('arJanHint').innerHTML = `⚠ このJAN（${esc(code)}）は商品マスタにありません。<b>名前は後からでも入れられます</b>：このまま「入荷を記録する」を押すと、JANだけ控えて登録します（あとでパソコンの「🏷 名前を入れる」で商品名を入力）。いま名前を入れてもOKです。<br><button class="g" type="button" onclick="openJan('${esc(code)}')">🔗 すでにある商品に結び付ける（入荷はしない）</button>`;
+  blurActive();
 }
-function arrivalOnCode(text){ const c = mN(text).replace(/\D/g,''); if (/^(\d{8}|\d{13})$/.test(c)) applyJan(c); else toast('JANコードではありません: '+text); }
+function arrivalOnCode(text){ const r = janFromRaw(text); if (r.empty) return; if (r.jan || r.multi || r.bad) applyJan(text); else toast('JANコードではありません: '+text); }
 let _janT = 0;
-$('arJan').oninput = () => { clearTimeout(_janT); const c = mN($('arJan').value).replace(/\D/g,''); if (/^(\d{8}|\d{13})$/.test(c)) _janT = setTimeout(() => applyJan(c), 250); };
+$('arJan').oninput = () => { clearTimeout(_janT); const c = mN($('arJan').value).replace(/\D/g,''); if (c.length===8 || c.length===13 || c.length>13) _janT = setTimeout(() => applyJan(c), 250); };
 $('arJan').onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); clearTimeout(_janT); applyJan($('arJan').value); } };
 $('arName').onchange = () => { const m = masterIdx().byName.get($('arName').value.trim()); if (m) fillFromMaster(m); };
 $('arPrice').oninput = priceHint;
 $('arAllField').onchange = refreshMasterList;
 $('arQty').onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); $('arSave').click(); } };
+/* 個数欄・単価欄にバーコードの数字が入り込んだとき：数字を取り消して、バーコードとして扱う */
+$('arQty').addEventListener('input', () => { const v = $('arQty').value.replace(/\D/g,''); if (v.length>4){ $('arQty').value = 1; blurActive(); if (v.length>=8) arrivalOnCode(v); else toast('数量が大きすぎます'); } });
+$('arPrice').addEventListener('input', () => { const v = $('arPrice').value.replace(/\D/g,''); if (v.length>7){ $('arPrice').value = (ARM && ARM.cost!=null) ? ARM.cost : ''; blurActive(); if (v.length>=8) arrivalOnCode(v); priceHint(); } });
+$('arClear').onclick = () => { if (arModeV==='batch'){ $('abJan').value = ''; abLastScan = {jan:'', t:0}; camSeen = {code:'', t:0}; toast('読み取り欄をクリアしました（リストはそのまま）'); } else { arReset(); toast('入力をクリアしました'); blurActive(); } };
 
 /* ---- スマホ用ナビ（下のタブ・メニュー・絞り込み） ---- */
 const isMob = () => window.matchMedia('(max-width:720px)').matches;
@@ -1951,7 +2052,7 @@ function renderNew(box){
   let h = `<div class="nsum">${chip('',all.length,'品目（すべて）','')}${chip('out',cnt.out,'在庫なし','out')}${chip('low',cnt.low,'残りわずか','low')}${chip('ok',cnt.ok,'在庫あり','ok')}` +
     `<div class="chip st"><b>${stockSum}</b><small>在庫 合計台数</small></div><div class="chip st"><b style="font-size:1.05rem">${costN ? valSum.toLocaleString()+'円' : '－'}</b><small>仕入価値（税抜）</small></div></div>` +
     `<div class="ntool"><select id="nsSort"><option value="low">並び：在庫が少ない順</option><option value="many">在庫が多い順</option><option value="name">商品名</option><option value="cat">カテゴリ</option></select>` +
-    `<div class="seg" id="nsMode"><button data-m="card">カード</button><button data-m="table">表</button></div><span class="sp" style="flex:1"></span><button class="g" id="nsJan">🔗 JANを登録${all.filter(g=>!g.jan).length ? ` (${all.filter(g=>!g.jan).length})` : ''}</button><button class="p" id="nsIn">🚚 新品入荷</button></div>`;
+    `<div class="seg" id="nsMode"><button data-m="card">カード</button><button data-m="table">表</button></div><span class="sp" style="flex:1"></span>${nmGroups().length ? `<button class="g" id="nsNm">🏷 名前を入れる (${nmGroups().length})</button>` : ''}<button class="g" id="nsJan">🔗 JANを登録${all.filter(g=>!g.jan).length ? ` (${all.filter(g=>!g.jan).length})` : ''}</button><button class="p" id="nsIn">🚚 新品入荷</button></div>`;
   if (!list.length){
     h += `<div class="empty">${all.length ? 'この条件の商品はありません' : '新品在庫はまだありません。「🚚 新品入荷」で、「商品一覧にも新品在庫として登録する」を付けて入荷すると、ここに並びます。'}</div>`;
   } else if (S.nsMode==='table' && !isMob()){
@@ -1972,7 +2073,7 @@ function renderNew(box){
   box.innerHTML = h;
   $('nsSort').value = S.nsSort; $('nsSort').onchange = () => { S.nsSort = $('nsSort').value; render(); };
   $('nsMode').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.m===S.nsMode); b.onclick = () => { S.nsMode = b.dataset.m; render(); }; });
-  $('nsIn').onclick = openArrival; $('nsJan').onclick = openJan;
+  $('nsIn').onclick = openArrival; $('nsJan').onclick = openJan; if ($('nsNm')) $('nsNm').onclick = openNm;
   box.querySelectorAll('.nsum .chip[data-f]').forEach(e => e.onclick = () => { S.nsFilter = (S.nsFilter===e.dataset.f ? '' : e.dataset.f); render(); });
   box.querySelectorAll('[data-n]').forEach(e => e.onclick = ev => {
     const g = list[+e.dataset.n], a = ev.target.closest('[data-a]');
@@ -2008,6 +2109,7 @@ $('minVal').onkeydown = e => { if (e.key==='Enter') $('minOk').click(); };
 let arModeV = 'one', AB = [], _ac = null, camLast = {code:'', t:0};
 function arKb(){ return arModeV==='batch' ? batchOnCode : arrivalOnCode; }
 function beep(ok){ fb(ok ? 'scan' : 'ng'); }
+const nm_ = r => String(r.name||'').trim() || (r.jan ? NONAME + r.jan : '');
 function splitJans(s){ // つながって読み込まれた複数のJANを1件ずつに分ける（できなければnull）
   const out = []; let r = String(s);
   while (r){
@@ -2031,13 +2133,28 @@ function setArMode(m){
   }
   if ($('mArrival').classList.contains('on')) kbHandler = arKb();
 }
-$('arMode').querySelectorAll('button').forEach(b => b.onclick = () => { setArMode(b.dataset.m); if (b.dataset.m==='batch' && window.matchMedia && matchMedia('(pointer:fine)').matches) $('abJan').focus(); });
+$('arMode').querySelectorAll('button').forEach(b => b.onclick = () => { unlockVoice(); setArMode(b.dataset.m); if (b.dataset.m==='batch' && window.matchMedia && matchMedia('(pointer:fine)').matches) $('abJan').focus(); });
 $('arCamStop').onclick = () => { stopScan(); $('arCamBox').style.display='none'; $('arCamBtn').textContent='📷 カメラで読む'; };
 /* 二重読み取りの防止：同じバーコードが短い間に続けて読めたときは1回だけ数える */
+let abLastRow = null, _vT = 0;
 let abGuard = 1.2, abLastScan = {jan:'', t:0}, abUndoStack = [], camCand = {code:'', n:0, t:0}, camSeen = {code:'', t:0};
 try { const g = parseFloat(store.get('dm_guard')); if (!isNaN(g)) abGuard = g; } catch(e){}
 $('abGuard').value = String(abGuard); if ($('abGuard').value !== String(abGuard)) $('abGuard').value = '1.2';
 $('abGuard').onchange = () => { abGuard = parseFloat($('abGuard').value)||0; try { store.set('dm_guard', String(abGuard)); } catch(e){} };
+/* 読み上げ：読み取りが止まって数秒たったら「ただいま合計○個です」と声で知らせる（間違いに気づきやすくする） */
+let abVoice = 3; try { const v = parseInt(store.get('dm_voice')); if (!isNaN(v)) abVoice = v; } catch(e){}
+$('abVoice').value = String(abVoice); if ($('abVoice').value !== String(abVoice)) $('abVoice').value = '3';
+function unlockVoice(){ try { if (!('speechSynthesis' in window)) return; const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch(e){} }
+function say(t){ try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ja-JP'; u.rate = 1.0; const v = (speechSynthesis.getVoices()||[]).find(v => /^ja/i.test(v.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch(e){} }
+function shortSay(n){ return String(n||'').replace(/[\[［][^\]］]*[\]］]/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(new RegExp('^'+NONAME),'名前なし ').trim().slice(0,22); }
+function abAnnounce(){
+  if (!$('mArrival').classList.contains('on') || arModeV!=='batch' || !AB.length) return;
+  const q = AB.reduce((a,r) => a+(Number(r.qty)||0), 0), r = abLastRow && AB.includes(abLastRow) ? abLastRow : null;
+  say(`ただいま、合計${q}個です。` + (r ? `最後は、${shortSay(nm_(r))}、${r.qty}個。` : ''));
+}
+function abVoiceSchedule(){ clearTimeout(_vT); if (!abVoice) return; _vT = setTimeout(abAnnounce, (abVoice<0 ? 3 : abVoice)*1000); }
+$('abVoice').onchange = () => { abVoice = parseInt($('abVoice').value)||0; try { store.set('dm_voice', String(abVoice)); } catch(e){} unlockVoice(); if (abVoice) say('読み上げをオンにしました'); else { clearTimeout(_vT); try { speechSynthesis.cancel(); } catch(e){} } };
+$('abSayNow').onclick = () => { unlockVoice(); if (!AB.length) say('まだ読み取っていません'); else { const sv = abVoice; abAnnounce(); } };
 function abSay(html, kind){
   const el = $('abLast'); $('abLastTx').innerHTML = html;
   el.classList.remove('warn','err','flash'); if (kind) el.classList.add(kind); void el.offsetWidth; el.classList.add('flash');
@@ -2048,13 +2165,14 @@ function camOnCode(txt){   // カメラが読み取るたびに呼ばれる（�
   if (!mJanOk(c)) return;                                              // 読み間違い（チェックデジット不一致）は無視
   if (c!==camCand.code || now-camCand.t > 1000) camCand = {code:c, n:1, t:now}; else { camCand.n++; camCand.t = now; }
   if (camCand.n < 2) return;                                           // 2回続けて同じ値が読めたときだけ採用（1フレームの誤読み防止）
-  const gap = Math.max(abGuard, 0.5) * 1000;
+  const gap = Math.max(abGuard, 1.5) * 1000;   // 同じ箱は、いったん映らなくなって1.5秒以上たつまで数えない
   if (c===camSeen.code && now-camSeen.t < gap){ camSeen.t = now; return; }   // 同じ箱が映り続けている間・直後は数えない
   camSeen = {code:c, t:now};
   if (arModeV==='batch') batchAdd(c, 'cam');
   else { beep(true); applyJan(c); stopScan(); $('arCamBox').style.display='none'; $('arCamBtn').textContent='📷 カメラで読む'; }
 }
 $('arCamBtn').onclick = () => {
+  unlockVoice();
   if (scanner){ stopScan(); $('arCamBox').style.display='none'; $('arCamBtn').textContent='📷 カメラで読む'; return; }
   $('arCamBox').style.display=''; $('arCamBtn').textContent='📷 カメラを止める'; if (isMob()) $('arStick').scrollIntoView({block:'start', behavior:'smooth'});
   camCand = {code:'', n:0, t:0}; camSeen = {code:'', t:0};
@@ -2064,7 +2182,7 @@ function batchOnCode(text){
   const raw = mN(text).replace(/\D/g,''); if (!raw) return;
   const parts = splitJans(raw);
   if (!parts){ beep(false); abSay(`⚠ 読み取れませんでした（${esc(raw)}）。もう一度読んでください。`, 'err'); return; }
-  parts.forEach(j => batchAdd(j, 'kb'));
+  parts.filter((j,i) => i===0 || j!==parts[i-1]).forEach(j => batchAdd(j, 'kb'));   // 同じJANが2回つながって届いた時は1回だけ
 }
 function batchAdd(x, src){   // x: JAN文字列 または 商品マスタの項目 ／ src: 'cam' | 'kb' | undefined(マスタ選択)
   let jan, m;
@@ -2085,16 +2203,17 @@ function batchAdd(x, src){   // x: JAN文字列 または 商品マスタの項�
   }
   abLastScan = {jan, t:now};
   abUndoStack.push({row, created}); if (abUndoStack.length > 50) abUndoStack.shift();
-  beep(true);
-  abSay(row.known ? `✅ ${esc(row.name)}　<span style="white-space:nowrap">×${row.qty}</span>` : `⚠ 登録のないJAN（${esc(jan)}）：下で機種名を入れてください`, row.known ? '' : 'warn');
-  abRender(AB.indexOf(row));
+  if (!created && row.qty>=2) fb('again', row.qty); else beep(true);   // 2個目以降は「ピピッ」（個数ぶん鳴る）
+  if (abVoice<0) say(row.qty+'個');
+  abSay(row.known ? `✅ ${esc(row.name)}　<b style="white-space:nowrap;font-size:1.35em;color:${row.qty>=2?'#c2410c':'inherit'}">×${row.qty}</b>${row.qty>=2?'　<small>（同じ商品をもう一度読みました）</small>':''}` : `⚠ 登録のないJAN（${esc(jan)}）：JANだけ控えました。名前は後からパソコンで入れられます（今入れてもOK）`, row.known ? '' : 'warn');
+  abLastRow = row; abRender(AB.indexOf(row)); abVoiceSchedule();
 }
 $('abUndo').onclick = () => {
   const u = abUndoStack.pop(); if (!u){ $('abUndo').style.display='none'; return; }
   const i = AB.indexOf(u.row);
   if (i>=0){ if (u.created) AB.splice(i,1); else { u.row.qty = Math.max(1, u.row.qty-1); } }
   abLastScan = {jan:'', t:0}; camSeen = {code:'', t:0};
-  abRender(); abSay(`↩ 取り消しました${u.row.name ? '：'+esc(u.row.name) : ''}`, 'warn');
+  abRender(); abSay(`↩ 取り消しました${u.row.name ? '：'+esc(u.row.name) : ''}`, 'warn'); abLastRow = null; abVoiceSchedule();
 };
 function abDiffText(r){ const m = r.m, cur = r.price!=='' ? Number(r.price) : null; return (m && m.cost!=null && cur!=null && cur!==m.cost) ? `最新の仕入単価 ${yenFmt(m.cost)} より ${cur-m.cost>0?'+':''}${(cur-m.cost).toLocaleString()}円` : ''; }
 function abSummary(){ const n = AB.length, q = AB.reduce((a,r)=>a+(Number(r.qty)||0),0); const el=$('abSum'); if (el) el.textContent = `${n}種類　計${q}台`; return {n,q}; }
@@ -2104,7 +2223,7 @@ function abRender(hi){
     const diff = `<div class="hint abDiff" style="margin:4px 0 0;color:var(--over)">${abDiffText(r)}</div>`;
     return `<div class="abRow ${r.known?'':'unk'} ${i===hi?'hit':''}" data-i="${i}">` +
       (r.known ? `<div class="abName">${esc(r.name)}</div><small>${esc([r.model, r.maker, r.jan&&('JAN '+r.jan)].filter(Boolean).join('　'))}</small>`
-               : `<div class="abName" style="color:#a35f00">${r.jan ? `⚠ 登録のない商品（JAN ${esc(r.jan)}）` : '✏️ JANなしの商品（JANは後から登録できます）'}</div><div class="abU"><input data-f="name" list="catNameList" placeholder="機種名（必須）" value="${esc(r.name)}"><input data-f="model" placeholder="型番" value="${esc(r.model)}"><input data-f="maker" placeholder="メーカー" value="${esc(r.maker)}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(r.cat)}"></div>`) +
+               : `<div class="abName" style="color:#a35f00">${r.jan ? `⚠ マスタにない商品（JAN ${esc(r.jan)}）— 名前は後からでもOK` : '✏️ JANなしの商品（JANは後から登録できます）'}</div><div class="abU"><input data-f="name" list="catNameList" placeholder="${r.jan ? '機種名（後でもOK）' : '機種名（必須）'}" value="${esc(r.name)}"><input data-f="model" placeholder="型番" value="${esc(r.model)}"><input data-f="maker" placeholder="メーカー" value="${esc(r.maker)}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(r.cat)}"></div>`) +
       `<div class="abCtl"><div class="stp"><button type="button" data-a="dec" aria-label="減らす">−</button><input class="qty" type="number" min="1" inputmode="numeric" data-f="qty" value="${r.qty}"><button type="button" data-a="inc" aria-label="増やす">＋</button></div>` +
       `<label class="prw"><span>単価</span><input class="pr" type="number" min="0" inputmode="numeric" data-f="price" placeholder="税抜" value="${esc(r.price)}"></label><button type="button" class="g x" data-a="del" title="削除" aria-label="削除">✕</button></div>${diff}</div>`;
   }).join('');
@@ -2112,17 +2231,19 @@ function abRender(hi){
 }
 $('abList').addEventListener('input', e => {
   const f = e.target.dataset.f; if (!f) return; const row = AB[Number(e.target.closest('.abRow').dataset.i)]; if (!row) return;
+  if ((f==='qty' || f==='price')){ const raw = String(e.target.value).replace(/\D/g,''); if (raw.length > (f==='qty' ? 4 : 7)){ e.target.value = row[f]; e.target.blur(); if (raw.length>=8) batchOnCode(raw); return; } }   // バーコードの数字が個数・単価に入り込んだ時
   row[f] = f==='qty' ? Math.max(1, parseInt(e.target.value)||1) : e.target.value;
   if (f==='name' && !row.known){ const m = masterIdx().byName.get(String(row.name).trim()); if (m && !row.maker && m.maker){ row.maker = m.maker; } }
   if (f==='qty' || f==='price') abSummary();
+  if (f==='qty') abVoiceSchedule();
   if (f==='price'){ const d = e.target.closest('.abRow').querySelector('.abDiff'); if (d) d.textContent = abDiffText(row); }
 });
 $('abList').addEventListener('click', e => {
   const b = e.target.closest('[data-a]'); if (!b) return; const i = Number(b.closest('.abRow').dataset.i), row = AB[i]; if (!row) return;
   if (b.dataset.a==='inc') row.qty++; else if (b.dataset.a==='dec') row.qty = Math.max(1, row.qty-1); else { AB.splice(i,1); abUndoStack = abUndoStack.filter(u => u.row!==row); }
-  abRender();
+  abRender(); abLastRow = (b.dataset.a==='del') ? null : row; abVoiceSchedule();
 });
-$('abClear').onclick = () => { if (!AB.length || confirm('リストを空にします。よろしいですか？')){ AB = []; abUndoStack = []; abLastScan = {jan:'', t:0}; abRender(); abSay('読み取ると下のリストに追加されます。'); $('abUndo').style.display='none'; } };
+$('abClear').onclick = () => { if (!AB.length || confirm('リストを空にします。よろしいですか？')){ AB = []; abLastRow = null; clearTimeout(_vT);  abUndoStack = []; abLastScan = {jan:'', t:0}; abRender(); abSay('読み取ると下のリストに追加されます。'); $('abUndo').style.display='none'; } };
 $('abMasterBtn').onclick = openMaster;
 $('abBlank').onclick = () => {
   const row = {key:'', jan:'', name:'', model:'', maker:'', cat:'', qty:1, price:'', known:false, m:null};
@@ -2136,10 +2257,11 @@ $('abJan').oninput = () => { clearTimeout(_abT); const c = mN($('abJan').value).
 $('abJan').onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); clearTimeout(_abT); abJanFlush(); } };
 const _abSaveImpl = async () => {
   if (!AB.length) return toast('読み取ったデータがありません');
-  const bad = AB.find(r => !String(r.name).trim()); if (bad) return toast('機種名が未入力の商品があります（黄色の枠）');
+  const bad = AB.find(r => !nm_(r)); if (bad) return toast('機種名が未入力の商品があります（黄色の枠）。JANがあるものは名前なしでも記録できます');
+  const big = AB.find(r => Number(r.qty) > 999); if (big) return toast('数量が大きすぎる行があります（1〜999）');
   const dateC = $('abDate').value || ymd(todayMid());
   const lines = AB.map(r => { const dup = (S.arrivals||[]).filter(a => a['日付']===dateC && r.jan && String(a['JAN']||'')===r.jan).length;
-    return `・${String(r.name).trim()}　×${r.qty}${r.price!==''?`（単価 ${Number(r.price).toLocaleString()}円）`:''}${dup?`\n　⚠ 本日すでに同じ商品の入荷記録が${dup}件あります。二重登録ではないか確認してください`:''}`; });
+    return `・${nm_(r)}　×${r.qty}${r.price!==''?`（単価 ${Number(r.price).toLocaleString()}円）`:''}${dup?`\n　⚠ 本日すでに同じ商品の入荷記録が${dup}件あります。二重登録ではないか確認してください`:''}`; });
   const totalC = AB.reduce((a,r)=>a+(Number(r.qty)||0),0);
   if (!confirm(`次の内容を入荷として記録します。\n\n${lines.slice(0,14).join('\n')}${lines.length>14?`\n…ほか${lines.length-14}種類`:''}\n\n${AB.length}種類・計${totalC}台　よろしいですか？`)) return;
   const date = $('abDate').value || ymd(todayMid()), sup = $('abSupplier').value.trim(), place = $('abPlace').value.trim() || '店';
@@ -2148,7 +2270,7 @@ const _abSaveImpl = async () => {
   const total = AB.reduce((a,r)=>a+(Number(r.qty)||0),0), ids = $('abAddStock').checked ? nextIdBatch(total) : [];
   const gk = {}; const newItems = []; let ip = 0;
   for (const r of AB){
-    const name = String(r.name).trim(), qty = Math.max(1, Number(r.qty)||1);
+    const name = nm_(r), qty = Math.max(1, Number(r.qty)||1);
     const rec = {'ID':'A'+String(++an).padStart(4,'0'), '日付':date, '機種':name, '型番':r.model||'', 'メーカー':r.maker||'', '数量':qty, '仕入先':sup,
       '単価': r.price!=='' ? Number(r.price) : '', '担当者':S.user||'', 'メモ':'まとめて入荷', 'JAN': r.jan||''};
     try { await apiArrival('arrivalSave', {item:rec}); } catch(e){ toast('入荷記録の保存に失敗: '+e.message+'（'+name+'以降は未保存）'); S.arrivals = await loadArrivals(); renderArrivalHist(); return; }
@@ -2174,7 +2296,7 @@ $('abSave').onclick = async () => { if (abBusy) return; abBusy = true; $('abSave
 function arReset(){
   ARM = null;
   ['arJan','arName','arModel','arMaker','arCat','arSupplier','arPrice','arNote'].forEach(id => $(id).value = '');
-  $('arQty').value = 1; $('arJanHint').textContent = '商品マスタにあれば、機種名・型番・メーカー・仕入単価が自動で入ります。JANが無い商品は空欄のまま機種名を入れて記録できます（JANは後から「🔗 JANを後から登録」で入れられます）。'; $('arPriceHint').innerHTML = '';
+  _apl = {jan:'', t:0}; $('arQty').value = 1; $('arJanHint').textContent = '商品マスタにあれば、機種名・型番・メーカー・仕入単価が自動で入ります。JANが無い商品は空欄のまま機種名を入れて記録できます（JANは後から「🔗 JANを後から登録」で入れられます）。'; $('arPriceHint').innerHTML = '';
 }
 async function openArrival(){
   arReset(); $('arDate').value = ymd(todayMid()); $('arPlace').value='店'; $('arAddStock').checked = true;
@@ -2187,6 +2309,69 @@ $('arName').oninput = () => {
   const hit = autoFillProduct($('arName').value);
   if (hit){ if(!$('arModel').value && hit.model) $('arModel').value = hit.model; if(!$('arMaker').value && hit.maker) $('arMaker').value = hit.maker; }
 };
+/* ---- 入力欄の「✕（ひとまとめに消す）」「⌨（数字キーパッド）」、タップで全選択 ---- */
+(function(){
+  const PADS = {arJan:'JAN', abJan:'JAN', arQty:'数量', arPrice:'仕入単価'};
+  ['arJan','abJan','arName','arModel','arMaker','arCat','arSupplier','arPrice','arNote','arQty','abSupplier','abPlace','arPlace'].forEach(id => {
+    const inp = $(id); if (!inp) return;
+    if (!inp.hasAttribute('placeholder')) inp.setAttribute('placeholder', ' ');
+    const w = document.createElement('span'); w.className = 'xw' + (PADS[id] ? ' hp' : '');
+    inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    if (PADS[id]){ const k = document.createElement('button'); k.type = 'button'; k.className = 'xp'; k.title = '数字キーパッドで入力'; k.setAttribute('aria-label','数字キーパッド'); k.textContent = '⌨'; k.onclick = () => openPad(inp, PADS[id]); w.appendChild(k); }
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'xc'; x.title = '消す'; x.setAttribute('aria-label','消す'); x.textContent = '✕';
+    x.onclick = () => { inp.value = ''; inp.dispatchEvent(new Event('input', {bubbles:true})); if (id==='arJan'){ ARM = null; _apl = {jan:'', t:0}; } inp.focus(); };
+    w.appendChild(x);
+    inp.addEventListener('focus', () => { if (id==='arPlace'||id==='abPlace') return; setTimeout(() => { try { inp.select(); } catch(e){} }, 30); });
+  });
+})();
+let _padEl = null, _padV = '';
+function openPad(el, title){ _padEl = el; _padV = String(el.value||'').replace(/\D/g,''); $('padTitle').textContent = title+'を入力'; $('padVal').textContent = _padV; open_('mPad'); }
+$('mPad').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; const k = b.dataset.k; if (k==='C') _padV = ''; else if (k==='B') _padV = _padV.slice(0,-1); else if (_padV.length < 30) _padV += k; $('padVal').textContent = _padV; });
+$('padOk').onclick = () => { const el = _padEl, v = _padV; close_('mPad'); if (!el) return; el.value = v; el.dispatchEvent(new Event('input', {bubbles:true})); if (el.id==='arJan' || el.id==='abJan') el.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true})); };
+/* ---- 🏷 名前を入れる（JANだけ控えて登録した商品に、後から商品名を入れる） ---- */
+function nmGroups(){
+  const m = new Map();
+  S.items.forEach(i => { const n = String(i['機種']||''); if (n.startsWith(NONAME) && i['状態']!=='廃棄'){ const o = m.get(n) || {pname:n, jan:n.slice(NONAME.length), stock:0}; if (i['状態']==='在庫') o.stock++; m.set(n, o); } });
+  (S.arrivals||[]).forEach(a => { const n = String(a['機種']||''); if (n.startsWith(NONAME) && !m.has(n)) m.set(n, {pname:n, jan:n.slice(NONAME.length), stock:0}); });
+  return [...m.values()];
+}
+let NM = [];
+function nmRender(){
+  NM = nmGroups(); const idx = masterIdx();
+  $('nmList').innerHTML = NM.length ? NM.map((g,i) => { const m = idx.byJan.get(g.jan);
+    return `<div class="abRow" data-i="${i}"><div class="abName">JAN ${esc(g.jan)}　<small>${g.stock?`在庫 ${g.stock}台`:''}</small></div>${m ? `<div class="hint" style="color:var(--ok,#1a7f5a)">✅ 商品マスタに同じJANがあります（下に入れてあります）</div>` : ''}` +
+      `<div class="abU"><input data-f="name" list="catNameList" placeholder="商品名（必須）" value="${esc(m?m.name:'')}"><input data-f="model" placeholder="型番" value="${esc(m?m.model||'':'')}"><input data-f="maker" placeholder="メーカー" value="${esc(m?m.maker||'':'')}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(m?m.cat||'':'')}"></div>` +
+      `<div class="row" style="margin:6px 0 0"><span class="sp"></span><button class="p" type="button" data-a="nmsave">この名前で保存</button></div></div>`; }).join('')
+    : '<div class="hint" style="margin:10px 0">名前を入れる商品はありません。</div>';
+}
+function openNm(){ open_('mNm'); nmRender(); }
+let _nmBusy = false;
+$('nmList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-a="nmsave"]'); if (!b || _nmBusy) return;
+  const row = b.closest('.abRow'), g = NM[Number(row.dataset.i)]; if (!g) return;
+  const v = f => (row.querySelector(`[data-f="${f}"]`)||{value:''}).value.trim();
+  const name = v('name'), model = v('model'), maker = v('maker'), cat = v('cat');
+  if (!name) return toast('商品名を入れてください');
+  if (name.startsWith(NONAME)) return toast('商品名を入れてください');
+  _nmBusy = true; b.disabled = true;
+  try {
+    const units = S.items.filter(i => i['機種']===g.pname);
+    let goki = Math.max(0, ...S.items.filter(i => i['機種']===name).map(i => Number(i['号機'])||0));
+    if (units.length){
+      const hit = autoFillProduct(name);
+      const ch = units.map(u => { goki++; return {...u, '機種':name, '号機':String(goki), '型番': model||u['型番']||(hit&&hit.model)||'', 'メーカー': maker||u['メーカー']||(hit&&hit.maker)||'', 'カテゴリ': cat||u['カテゴリ']||'その他',
+        '写真': u['写真'] || photoForName(name, model||u['型番']||'') || (hit&&hit.photo) || ''}; });
+      await run('import', {items: ch});
+    }
+    const arr = (S.arrivals||[]).filter(a => a['機種']===g.pname);
+    for (const a of arr) await apiArrival('arrivalSave', {item:{...a, '機種':name, '型番': model||a['型番']||'', 'メーカー': maker||a['メーカー']||''}});
+    const a0 = arr[0];
+    await learnMaster({'JAN':g.jan, '機種':name, '型番':model, 'メーカー':maker, '日付': (a0&&a0['日付'])||ymd(todayMid()), '単価': (a0 && a0['単価']!=='' && a0['単価']!=null) ? Number(a0['単価']) : ''}, cat||'その他');
+    S.arrivals = await loadArrivals(); renderArrivalHist(); toast(`✅ 「${name}」の名前を入れました`);
+  } catch(err){ toast('保存に失敗: '+err.message); }
+  _nmBusy = false; nmRender(); render();
+});
+$('arNmBtn').onclick = openNm;
 /* ---- 🔗 JANを後から登録（JANが無いまま登録した商品に、あとでJANを結び付ける） ---- */
 const jNorm = s => mN(s).toLowerCase().replace(/[\s\-‐‑–ー_・()（）\[\]［］【】\/]/g,'');
 let J = {all:false, active:0, rows:[], busy:false, pending:''};
@@ -2323,6 +2508,7 @@ async function jReadFile(f){
 }
 /* 入荷を記録するたびに、商品マスタへ覚えさせる（初めてのJAN・単価の変化） */
 async function learnMaster(rec, cat){
+  if (String(rec['機種']||'').startsWith(NONAME)) return;   // JANだけ控えた仮の名前はマスタに入れない
   const jan = rec['JAN']||'', idx = masterIdx(), date = rec['日付'];
   const price = rec['単価']!=='' ? Number(rec['単価']) : null;
   let m = jan ? idx.byJan.get(jan) : null;
@@ -2347,13 +2533,16 @@ async function learnMaster(rec, cat){
   try { const j = await apiMaster('masterSave', {entries:[e]}); S.master = j.master||[]; masterDirty(); } catch(err){ toast('商品マスタへの登録に失敗: '+err.message); }
 }
 const _arSaveImpl = async () => {
-  const name = $('arName').value.trim(); const qty = Math.max(1, parseInt($('arQty').value)||1);
-  if (!name) return toast('機種名を入力してください');
+  const _jr = janFromRaw($('arJan').value); if (_jr.multi || _jr.bad){ beep(false); return toast('JANの数字が正しくありません。「🧹 入力をクリア」してから、もう一度読んでください'); }
+  let name = $('arName').value.trim(); let qty = Math.max(1, parseInt($('arQty').value)||1);
+  if (qty > 999) return toast('数量が大きすぎます（1〜999）。数量欄を確かめてください');
+  if (!name && _jr.jan) name = NONAME + _jr.jan;   // 名前は後から入れる
+  if (!name) return toast('機種名を入力してください（JANを読んだ場合は、名前は空欄でもOKです）');
   const rec = {
     'ID': nextArrId(), '日付': $('arDate').value || ymd(todayMid()), '機種': name,
     '型番': $('arModel').value.trim(), 'メーカー': $('arMaker').value.trim(), '数量': qty,
     '仕入先': $('arSupplier').value.trim(), '単価': $('arPrice').value ? Number($('arPrice').value) : '',
-    '担当者': S.user||'', 'メモ': $('arNote').value.trim(), 'JAN': $('arJan').value.replace(/\D/g,'')
+    '担当者': S.user||'', 'メモ': $('arNote').value.trim(), 'JAN': _jr.jan||''
   };
   try { await apiArrival('arrivalSave', {item:rec}); } catch(e){ return toast('入荷記録の保存に失敗: '+e.message); }
   const cat = $('arCat').value.trim() || (S.items.find(i=>i['機種']===name)||{})['カテゴリ'] || 'その他';
