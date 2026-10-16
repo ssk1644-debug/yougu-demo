@@ -203,6 +203,11 @@ th,td{padding:11px 10px}
 .tile .mk{font-size:.72rem;font-weight:600;letter-spacing:.07em;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .nm{font-size:.98rem;font-weight:700;line-height:1.35}
 .tile .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px}
+.ids{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.ids .idc{font-family:var(--mono);font-size:.68rem;font-weight:700;background:#EDF0F5;color:var(--tx);padding:1px 6px;border-radius:5px}
+.ids .idc.out{background:transparent;color:var(--sub);font-weight:500;text-decoration:line-through;border:1px solid #DDE2EA}
+.ids .idm{font-size:.68rem;color:var(--sub);padding:1px 2px}
+.ids.tb{max-width:340px}.ids.tb{margin-top:0}
 .tile .id{font-family:var(--mono);font-size:.72rem;font-weight:600;background:#EDF0F5;color:var(--tx);padding:2px 7px;border-radius:5px}
 .tile .mdl{font-family:var(--mono);font-size:.74rem;color:var(--sub)}
 .tile .st{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:.74rem;font-weight:700;color:var(--ok)}
@@ -877,7 +882,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.16-6';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.16-8';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 6;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -1203,6 +1208,12 @@ function stackPhotoHTML(g){
   html += `<div class="card-l front">${photoHTML(g.first)}</div>`;
   return html;
 }
+/* 管理番号（D0012…）の並び：タイル・一覧に出す。貸出中のものは薄く */
+function idsHTML(units, cls){
+  const L = [...units].sort((x,y) => String(x['ID']).localeCompare(String(y['ID']),'ja',{numeric:true})), MAXN = 12;
+  const one = u => `<span class="idc ${u['状態']==='在庫'?'':'out'}">${esc(u['ID'])}</span>`;
+  return `<div class="ids ${cls||''}">${L.slice(0,MAXN).map(one).join('')}${L.length>MAXN?`<span class="idm">ほか${L.length-MAXN}台</span>`:''}</div>`;
+}
 function tileHTML(it){
   const d = derive(it), n = memos(it).length, dim = it['状態']==='貸出中';
   return `<div class="tile s-${d.eff} ${dim?'dim':''}" data-id="${esc(it['ID'])}"><div class="ph">${photoHTML(it)}
@@ -1255,12 +1266,12 @@ function render(){
           <span class="tag" style="--c:${stock===0?'var(--del)':'var(--ok)'}">在庫 ${stock}/${tot}台</span>
           ${over?'<span class="note" style="background:#ffd3d3;color:#8a1515">⚠</span>':''}</div>
           <div class="info">${g.first['メーカー']?`<div class="mk">${esc(g.first['メーカー'])}</div>`:''}<div class="nm">${esc(g.key)}</div>${clrDots(g.units)?`<div class="clrs">${clrDots(g.units)}</div>`:''}
-          <div class="sub">${g.c['貸出中']?`貸出中 ${g.c['貸出中']}台　<span class="who">${esc([...new Set(g.units.filter(u=>u['状態']==='貸出中').map(u=>u['担当者']||'未設定'))].join('・'))}</span>　`:''}${g.c['予約中']?`予約中 ${g.c['予約中']}台`:''}${!g.c['貸出中']&&!g.c['予約中']?esc(g.first['型番']||''):''}</div></div></div>`; }).join('') + '</div>';
+          ${idsHTML(g.units)}<div class="sub">${g.c['貸出中']?`貸出中 ${g.c['貸出中']}台　<span class="who">${esc([...new Set(g.units.filter(u=>u['状態']==='貸出中').map(u=>u['担当者']||'未設定'))].join('・'))}</span>　`:''}${g.c['予約中']?`予約中 ${g.c['予約中']}台`:''}${!g.c['貸出中']&&!g.c['予約中']?esc(g.first['型番']||''):''}</div></div></div>`; }).join('') + '</div>';
       box.querySelectorAll('.tile').forEach(e => e.onclick = () => openGroup(gs[+e.dataset.g].key));
     } else {
-      box.innerHTML = '<div class="wrap desk"><table><thead><tr><th>機種</th><th>カテゴリ</th><th>型番</th><th>総数</th><th>在庫</th><th>貸出中</th><th>予約中</th></tr></thead><tbody>' +
-        gs.map((g,i) => `<tr data-g="${i}"><td>${esc(g.key)}</td><td>${esc(g.first['カテゴリ'])}</td><td>${esc(g.first['型番'])}</td><td>${g.units.length}</td><td>${g.c['在庫']}</td><td>${g.c['貸出中']}</td><td>${g.c['予約中']}</td></tr>`).join('') + '</tbody></table></div>' +
-        '<div class="mlist">' + gs.map((g,i) => `<div class="mrow" data-g="${i}"><div class="mph">${photoHTML(g.first)}</div><div class="mmain"><div class="mnm">${esc(g.key)}</div><div class="msub">${esc([g.first['カテゴリ'], g.first['型番']].filter(Boolean).join('　'))}</div><div class="msub">${g.c['貸出中']?`貸出中 ${g.c['貸出中']}台　`:''}${g.c['予約中']?`予約中 ${g.c['予約中']}台`:''}</div></div><span class="badge" style="--c:${g.c['在庫']===0?'var(--del)':'var(--ok)'}">在庫 ${g.c['在庫']}/${g.units.length}</span></div>`).join('') + '</div>';
+      box.innerHTML = '<div class="wrap desk"><table><thead><tr><th>機種</th><th>管理番号</th><th>カテゴリ</th><th>型番</th><th>総数</th><th>在庫</th><th>貸出中</th><th>予約中</th></tr></thead><tbody>' +
+        gs.map((g,i) => `<tr data-g="${i}"><td>${esc(g.key)}</td><td>${idsHTML(g.units,'tb')}</td><td>${esc(g.first['カテゴリ'])}</td><td>${esc(g.first['型番'])}</td><td>${g.units.length}</td><td>${g.c['在庫']}</td><td>${g.c['貸出中']}</td><td>${g.c['予約中']}</td></tr>`).join('') + '</tbody></table></div>' +
+        '<div class="mlist">' + gs.map((g,i) => `<div class="mrow" data-g="${i}"><div class="mph">${photoHTML(g.first)}</div><div class="mmain"><div class="mnm">${esc(g.key)}</div><div class="msub">${esc([g.first['カテゴリ'], g.first['型番']].filter(Boolean).join('　'))}</div>${idsHTML(g.units,'m')}<div class="msub">${g.c['貸出中']?`貸出中 ${g.c['貸出中']}台　`:''}${g.c['予約中']?`予約中 ${g.c['予約中']}台`:''}</div></div><span class="badge" style="--c:${g.c['在庫']===0?'var(--del)':'var(--ok)'}">在庫 ${g.c['在庫']}/${g.units.length}</span></div>`).join('') + '</div>';
       box.querySelectorAll('tbody tr,.mrow').forEach(e => e.onclick = () => openGroup(gs[+e.dataset.g].key));
     }
     return;
@@ -2085,7 +2096,7 @@ function newGroups(){
     const places = {}; inS.forEach(u => { const pl = u['場所']||'-'; places[pl] = (places[pl]||0)+1; });
     const f = units[0];
     const _fb = units.find(u=>u['写真']) ? '' : photoForName(name, f['型番']);
-    return {name, units, c, stock, jan:(me&&me.jan)||'', total:units.length, min, minSet, st, first: units.find(u=>u['写真'])||(_fb ? {...f,'写真':_fb} : f), cat:f['カテゴリ']||'', model:f['型番']||'', maker:f['メーカー']||'',
+    return {name, units, c, stock, jan:(me&&me.jan)||(String(name).startsWith(NONAME)?name.slice(NONAME.length):''), total:units.length, min, minSet, st, first: units.find(u=>u['写真'])||(_fb ? {...f,'写真':_fb} : f), cat:f['カテゴリ']||'', model:f['型番']||'', maker:f['メーカー']||'',
       cmin: costs.length ? Math.min(...costs) : null, cmax: costs.length ? Math.max(...costs) : null, value: costs.reduce((a,b)=>a+b,0), costN: costs.length, places};
   });
 }
@@ -2115,7 +2126,7 @@ function renderNew(box){
       const out = [g.c['貸出中'] ? `持出・納品中 ${g.c['貸出中']}台` : '', g.c['予約中'] ? `予約中 ${g.c['予約中']}台` : '', g.c['メンテ中'] ? `メンテ中 ${g.c['メンテ中']}台` : ''].filter(Boolean).join('／');
       const cost = g.cmin==null ? '' : '仕入 ' + (g.cmin===g.cmax ? yenFmt(g.cmin) : yenFmt(g.cmin)+'〜'+yenFmt(g.cmax));
       return `<div class="ncard st-${g.st}" data-n="${i}"><div class="ph">${photoHTML(g.first)}</div><div class="nbody">
-        <div class="nnm">${esc(g.name)}</div><div class="nsub">${esc([g.model,g.maker].filter(Boolean).join('　'))}${g.jan?'':'<span class="nojan">JAN未登録</span>'}</div>
+        <div class="nnm">${esc(g.name)}</div><div class="nsub">${esc([g.model,g.maker].filter(Boolean).join('　'))}${g.name.startsWith(NONAME)?'<span class="nojan">名前未入力（JANは登録済み）</span>':(g.jan?'':'<span class="nojan">JAN未登録</span>')}</div>
         <div class="nstock"><span class="nnum">${g.stock}</span><span class="nunit">台 在庫</span><span class="nbadge">${NST[g.st]}</span></div>
         <div class="nbar"><i style="width:${pct}%"></i></div>
         <div class="nmeta">${out || '手元にすべてあります'}${pl ? `<br>置き場所：${pl}` : ''}<br>${cost}${cost?'　':''}発注点 ${g.min}台${g.minSet?'':'（標準）'}</div>
@@ -2197,7 +2208,7 @@ let abVoice = 3; try { const v = parseInt(store.get('dm_voice')); if (!isNaN(v))
 $('abVoice').value = String(abVoice); if ($('abVoice').value !== String(abVoice)) $('abVoice').value = '3';
 function unlockVoice(){ try { if (!('speechSynthesis' in window)) return; const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch(e){} }
 function say(t){ try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ja-JP'; u.rate = 1.0; const v = (speechSynthesis.getVoices()||[]).find(v => /^ja/i.test(v.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch(e){} }
-function shortSay(n){ return String(n||'').replace(/[\[［][^\]］]*[\]］]/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(new RegExp('^'+NONAME),'名前なし ').trim().slice(0,22); }
+function shortSay(n){ return String(n||'').replace(new RegExp('^'+NONAME+'(\\d+)'), (m,j) => '名前なし、下4桁、'+j.slice(-4).split('').join('、')).replace(/[\[［][^\]］]*[\]］]/g,'').replace(/[（(][^）)]*[）)]/g,'').trim().slice(0,22); }   // JANは読まず、名前がなければ下4桁だけ読む
 /* 「今回の読み取り」：読み取りが止まったら、合計を1回だけ読み上げて、数え直し（次は ピッ から）にする。リストの合計は残り、最後の「まとめて入荷を記録する」で確認する */
 let SS = {n:new Map(), total:0};
 function ssReset(){ SS = {n:new Map(), total:0}; }
@@ -2396,11 +2407,16 @@ function nmGroups(){
   return [...m.values()];
 }
 let NM = [];
+function makerByJan(jan){   // 同じJANの頭7桁（メーカー番号）の商品から、メーカーを推定
+  const pre = String(jan).slice(0,7), c = {};
+  masterIdx().list.forEach(m => { if (m.jan && m.maker && String(m.jan).startsWith(pre)) c[m.maker] = (c[m.maker]||0)+1; });
+  return Object.keys(c).sort((a,b) => c[b]-c[a])[0] || '';
+}
 function nmRender(){
   NM = nmGroups(); const idx = masterIdx();
   $('nmList').innerHTML = NM.length ? NM.map((g,i) => { const m = idx.byJan.get(g.jan);
     return `<div class="abRow" data-i="${i}"><div class="abName">JAN ${esc(g.jan)}　<small>${g.stock?`在庫 ${g.stock}台`:''}</small></div>${m ? `<div class="hint" style="color:var(--ok,#1a7f5a)">✅ 商品マスタに同じJANがあります（下に入れてあります）</div>` : ''}` +
-      `<div class="abU"><input data-f="name" list="catNameList" placeholder="商品名（必須）" value="${esc(m?m.name:'')}"><input data-f="model" placeholder="型番" value="${esc(m?m.model||'':'')}"><input data-f="maker" placeholder="メーカー" value="${esc(m?m.maker||'':'')}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(m?m.cat||'':'')}"></div>` +
+      `<div class="abU"><input data-f="name" list="catNameList" placeholder="商品名（必須）" value="${esc(m?m.name:'')}"><input data-f="model" placeholder="型番" value="${esc(m?m.model||'':'')}"><input data-f="maker" placeholder="メーカー" value="${esc(m?m.maker||'':makerByJan(g.jan))}"><input data-f="cat" list="catList" placeholder="カテゴリ" value="${esc(m?m.cat||'':'')}"></div>` +
       `<div class="row" style="margin:6px 0 0"><span class="sp"></span><button class="p" type="button" data-a="nmsave">この名前で保存</button></div></div>`; }).join('')
     : '<div class="hint" style="margin:10px 0">名前を入れる商品はありません。</div>';
 }
@@ -2472,7 +2488,7 @@ function openNewG(name, quiet){
   const pl = Object.entries(g.places).map(([k,v]) => `${esc(k)} ${v}`).join('・');
   $('newGBox').innerHTML = `<h2>${esc(name)}</h2>
    <div class="row" style="align-items:flex-start;gap:14px;flex-wrap:nowrap"><div class="phm" style="width:96px;height:96px;flex:none;border-radius:12px;overflow:hidden;background:#f3f5f9;display:grid;place-items:center;font-size:2rem">${g.first ? photoHTML(g.first) : '📦'}</div>
-    <div style="min-width:0"><div class="hint" style="margin:0">${esc([g.model,g.maker,g.cat].filter(Boolean).join('　'))}</div><div class="hint" style="margin:2px 0">${g.jan ? 'JAN '+esc(g.jan) : '<span class="nojan">JAN未登録</span>'}</div>
+    <div style="min-width:0"><div class="hint" style="margin:0">${esc([g.model,g.maker,g.cat].filter(Boolean).join('　'))}</div><div class="hint" style="margin:2px 0">${g.jan ? 'JAN '+esc(g.jan)+(g.name.startsWith(NONAME)?'　<span class="nojan">名前未入力</span>':'') : '<span class="nojan">JAN未登録</span>'}</div>
      <div class="bigstock"><b>${g.stock}</b><span>台 在庫</span><span class="nbadge2 ${g.st}">${NST[g.st]}</span></div>
      <div class="hint" style="margin:0">発注点 ${g.min}台${g.minSet?'':'（標準）'}${pl?`　／　置き場所 ${pl}`:''}</div></div></div>
    <div class="row" style="margin:12px 0"><button class="p" id="ngIn">＋ 入荷</button><button class="p" id="ngOut" ${g.stock?'':'disabled'}>出庫する</button><button class="g" id="ngMin">発注点</button>${g.units.length?'<button class="g" id="ngPh">📷 写真</button>':''}</div>
@@ -2635,7 +2651,8 @@ let J = {all:false, active:0, rows:[], busy:false, pending:''};
 function janTargets(){
   const idx = masterIdx(), t = new Map(), ns = new Map();
   S.items.forEach(i => { if (i['区分']==='新品' && i['状態']!=='廃棄' && i['機種']){ const o = ns.get(i['機種']) || {n:0, f:i}; if (i['状態']==='在庫') o.n++; ns.set(i['機種'], o); } });
-  ns.forEach((o, name) => { const m = idx.byName.get(name); if (m && m.jan) return;
+  ns.forEach((o, name) => { if (String(name).startsWith(NONAME)) return;   // JANは分かっていて名前だけ無い商品は「名前を入れる」の担当
+    const m = idx.byName.get(name); if (m && m.jan) return;
     t.set(name, {name, m:m||null, model:(m&&m.model)||o.f['型番']||'', maker:(m&&m.maker)||o.f['メーカー']||'', cat:(m&&m.cat)||o.f['カテゴリ']||'', stock:o.n, ns:true}); });
   idx.list.forEach(m => { if (m.jan || t.has(m.name)) return; t.set(m.name, {name:m.name, m, model:m.model||'', maker:m.maker||'', cat:m.cat||'', stock:0, ns:false}); });
   return [...t.values()].sort((a,b) => (b.ns-a.ns) || a.name.localeCompare(b.name,'ja',{numeric:true}));
