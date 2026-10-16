@@ -708,7 +708,7 @@ tr.sumsub td:first-child{padding-left:28px}
 <div class="modal" id="mJan"><div class="box w">
  <h2>JANを後から登録</h2>
  <div class="hint">JANが無いまま登録した商品に、あとからJANを結び付けます。登録したJANは、入荷や連続入荷で読み取ると自動で商品名が入り、商品のバーコードを読んだときも商品が開きます。<br>■ 1商品ずつ：行の入力欄を選んで、箱のバーコードをリーダー（またはカメラ）で読む／数字を入力。<br>■ まとめて：JANが入ったExcel・CSV（JAN列と、型番または商品名の列があるもの）を取り込む。</div>
- <div class="row"><button class="p" type="button" id="jFileBtn">📥 JAN対応表（Excel・CSV）から一括登録</button><button class="g" type="button" id="jCamBtn">📷 カメラで読む</button><input type="file" id="jFile" accept=".xlsx,.xls,.csv" style="display:none"></div>
+ <div class="row"><button class="p" type="button" id="jFileBtn">📥 JAN対応表（Excel・CSV）から一括登録</button><button class="g anyBtn" type="button">📥 いろいろなファイルをまとめて取り込む</button><button class="g" type="button" id="jCamBtn">📷 カメラで読む</button><input type="file" id="jFile" accept=".xlsx,.xls,.csv" style="display:none"></div>
  <div id="jCamBox" style="display:none"><div id="readerJan"></div></div>
  <div class="row"><input id="jQ" type="search" placeholder="🔍 商品名・型番で絞り込み" style="flex:1;min-width:160px;padding:10px;border:1px solid var(--line);border-radius:10px"><label class="chk" style="margin:0"><input type="checkbox" id="jAll"> 新品在庫にない商品も表示</label></div>
  <div id="jPend" style="display:none;border:1.5px solid #2f6fd6;background:#f2f7ff;padding:12px;margin:10px 0"></div>
@@ -721,6 +721,8 @@ tr.sumsub td:first-child{padding-left:28px}
 <div class="modal" id="mNm"><div class="box w">
  <h2>名前を入れる（JANだけ控えた商品）</h2>
  <div class="hint">入荷のとき、マスタにないバーコードはJANだけ控えて登録できます。ここで商品名・型番・メーカーを入れると、在庫・入荷履歴の名前が書き換わり、次回からそのJANで商品名が自動で入ります。</div>
+ <div class="row"><button class="p anyBtn" type="button">📥 Excel／CSVから名前をまとめて取り込む</button></div>
+ <div class="hint">ウェルファン・介援隊の発注実績や、JANと商品名が入った一覧表（複数OK）を選ぶと、JANが合う商品に名前・型番・メーカーが自動で入ります。</div>
  <div id="nmList"></div>
  <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
 </div></div>
@@ -775,7 +777,7 @@ tr.sumsub td:first-child{padding-left:28px}
   <select id="mField"><option value="入浴排泄">入浴・排泄</option><option value="入浴">入浴のみ</option><option value="排泄">排泄のみ</option><option value="">すべて</option></select></div>
  <div class="hint" id="mCount"></div>
  <div id="mList" class="wrap" style="max-height:48vh;overflow:auto"></div>
- <label style="margin-top:10px">発注実績を取り込む：ウェルファンのExcel／介援隊の注文履歴CSV（複数ファイルOK）<input type="file" id="mFile" accept=".xlsx,.xls,.csv" multiple></label>
+ <label style="margin-top:10px">いろいろなExcel／CSVをまとめて取り込む：ウェルファンの発注実績・介援隊の注文履歴・JANが入った一覧表など（複数ファイルOK・種類は自動で見分けます）<input type="file" id="mFile" accept=".xlsx,.xls,.csv,.txt" multiple></label>
  <div class="row"><span class="sp"></span><button class="g" data-close>閉じる</button></div>
 </div></div>
 <!-- 棚卸（在庫確認） -->
@@ -882,7 +884,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.16-8';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.16-9';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 6;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -1961,6 +1963,96 @@ async function importKaien(files){
   renderMaster(); refreshMasterList();
   toast(`商品マスタを更新しました（新規${news}件・更新${entries.length-news}件）`);
 }
+/* ---- 🔄 いろいろなExcel/CSVをまとめて取り込む：ウェルファン発注実績・介援隊注文履歴・JAN対応表など、種類を自動で見分けて商品マスタに学習させる ---- */
+const AH = {jan:/JAN|ＪＡＮ|ジャン|バーコード|EAN|ＥＡＮ/i, model:/型番|品番|型式|メーカー品番|メーカー型番|商品コード|品目コード|SKU/i, maker:/メーカー|ﾒｰｶｰ|ブランド|製造元/, retail:/上代|定価|希望小売|標準価格|売価|小売/, cost:/下代|仕入|原価|卸値|単価|価格/, name:/商品名|品名|名称|製品名|機種|名前|商品/};
+const AH_ANY = /JAN|ＪＡＮ|バーコード|商品名|品名|名称|品番|型番|WEBCD|単価|下代|上代|メーカー|発注日|注文日|規格/i;
+async function anyTables(f){
+  const out = [], buf = await f.arrayBuffer(), isCsv = /\.(csv|txt)$/i.test(f.name);
+  let sheets = [];
+  if (isCsv){ let txt = new TextDecoder('utf-8').decode(buf); if (txt.includes('�')) txt = new TextDecoder('shift_jis').decode(buf); const a = parseCSV(txt); sheets.push({sn:'', F:a, R:a}); }
+  else { const wb = XLSX.read(buf, {type:'array'}); wb.SheetNames.forEach(sn => { const ws = wb.Sheets[sn];
+    sheets.push({sn, F: XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false}), R: XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:true})}); }); }
+  sheets.forEach(({sn, F, R}) => {
+    let hi = -1; for (let i=0; i<Math.min(15, F.length); i++){ if (F[i].filter(c => AH_ANY.test(mN(c))).length >= 2){ hi = i; break; } }
+    if (hi<0) return;
+    const hdr = F[hi].map(c => mN(c)), rows = [];
+    for (let i=hi+1; i<F.length; i++){ if (!F[i].some(c => mN(c)!=='')) continue; const o = {};
+      hdr.forEach((h, j) => { if (!h || (h in o)) return; o[h] = (AH.jan.test(h) && R[i] && typeof R[i][j]==='number') ? R[i][j] : F[i][j]; }); rows.push(o); }
+    if (rows.length) out.push({sn, hdr, rows});
+  });
+  return out;
+}
+function anyGeneric(rows, hdr, supplier, ctx){
+  const used = new Set(), pick = rx => { const h = hdr.find(h => !used.has(h) && rx.test(h)); if (h) used.add(h); return h; };
+  const cJan = pick(AH.jan); if (!cJan) return {err:'JANの列が見つかりません'};
+  const cModel = pick(AH.model), cMaker = pick(AH.maker), cRetail = pick(AH.retail), cCost = pick(AH.cost), cName = pick(AH.name);
+  if (!cName && !cModel) return {err:'商品名か型番の列が必要です'};
+  const num = v => { const s = mN(v).replace(/[,円¥]/g,''); return /^\d+(\.\d+)?$/.test(s) ? Math.round(parseFloat(s)) : null; };
+  const list = ctx.list, byJan = ctx.byJan, noJan = list.filter(m => !m.jan), byModel = new Map(), byName = new Map();
+  noJan.forEach(m => { const mk = jNorm(m.model); if (mk) byModel.set(mk, (byModel.get(mk)||[]).concat(m)); const nk = jNorm(m.name); if (nk) byName.set(nk, (byName.get(nk)||[]).concat(m)); });
+  const out = new Map(); const st = {rows:0, bad:0, add:0, upd:0, bind:0, skip:0};
+  rows.forEach(r => {
+    const jan = jFixJan(r[cJan]); if (!jan) return; st.rows++;
+    if (!mJanOk(jan)){ st.bad++; return; }
+    const name = cName ? mN(r[cName]).replace(/\s+/g,' ') : '', model = cModel ? mN(r[cModel]) : '', maker = cMaker ? mN(r[cMaker]) : '';
+    const cost = cCost ? num(r[cCost]) : null, retail = cRetail ? num(r[cRetail]) : null;
+    let m = byJan.get(jan), kind = 'upd';
+    if (!m){
+      const mk = jNorm(model), nk = jNorm(name); let c = null;
+      if (mk && byModel.get(mk) && byModel.get(mk).length===1) c = byModel.get(mk)[0];
+      else if (nk && byName.get(nk) && byName.get(nk).length===1) c = byName.get(nk)[0];
+      if (c && !out.has(c.key) && ![...byJan.values()].some(x => x.key===c.key)){ m = c; kind = 'bind'; }
+    }
+    let e;
+    if (m){ e = {...(out.get(m.key)||m), jan}; if (!e.model && model) e.model = model; if (!e.maker && maker) e.maker = maker; if ((e.retail==null) && retail!=null) e.retail = retail;
+      if (e.cost==null && cost!=null){ e.cost = cost; e.hist = [['', cost]].filter(h => false); } if (!e.sup && supplier) e.sup = supplier; st[kind]++; }
+    else { const nm = name || model; if (!nm){ st.skip++; return; }
+      const cat = mClassify(nm); e = out.get('J'+jan) || {key:'J'+jan, jan, name:nm, model, maker, cat, field: MASTER_FIELD[cat]||'その他', cost, hist:[], retail, last:'', ...(supplier?{sup:supplier}:{})};
+      if (!e.model && model) e.model = model; if (!e.maker && maker) e.maker = maker; st.add++; }
+    out.set(e.key, e); byJan.set(jan, e);
+  });
+  return {entries:[...out.values()], st};
+}
+async function importAny(files){
+  if (typeof XLSX==='undefined') return toast('Excel読込ライブラリを読み込めません（ネット接続を確認してください）');
+  toast('ファイルを読み込んでいます…');
+  const rep = [], bad = [], all = new Map(); let kRows = [], wRows = [];
+  const idx0 = masterIdx();
+  const gen = [];
+  for (const f of files){
+    let tabs; try { tabs = await anyTables(f); } catch(e){ bad.push(`${f.name}（読めませんでした）`); continue; }
+    if (!tabs.length){ bad.push(`${f.name}（見出し行が見つかりません）`); continue; }
+    const sup = /ウェルファン|welfan/i.test(f.name) ? 'ウェルファン' : /介援隊|kaientai|カイエンタイ/i.test(f.name) ? '介援隊' : '';
+    let got = false;
+    for (const t of tabs){
+      const H = t.hdr;
+      if (H.includes('WEBCD') && H.includes('商品名')){ kRows = kRows.concat(t.rows); rep.push(`${f.name}：介援隊の注文履歴 ${t.rows.length}行`); got = true; }
+      else if (H.includes('品名') && H.includes('単価') && (H.includes('メーカー品番') || H.includes('SKUコード') || H.includes('発注日'))){ wRows = wRows.concat(t.rows); rep.push(`${f.name}：ウェルファンの発注実績 ${t.rows.length}行`); got = true; }
+      else gen.push({f, t, sup});
+    }
+    if (!got && !tabs.some(t => gen.find(g => g.t===t))) bad.push(`${f.name}（種類が分かりません）`);
+  }
+  const ov = new Map();   // この取り込みで新しくなった項目
+  if (wRows.length) buildMasterEntries(wRows).forEach(e => ov.set(e.key, e));
+  if (kRows.length){ const seen = new Set(); kaienBuild(kRows.filter(r => { const k = [r['注文番号'], r['行'], r['WEBCD']].join('|'); if (seen.has(k)) return false; seen.add(k); return true; })).forEach(e => ov.set(e.key, e)); }
+  const ctx = () => { const byKey = new Map(idx0.byKey); ov.forEach((e,k) => byKey.set(k, e)); const list = [...byKey.values()], byJan = new Map(); list.forEach(m => { if (m.jan) byJan.set(m.jan, m); }); return {list, byJan}; };
+  for (const {f, t, sup} of gen){
+    const r = anyGeneric(t.rows, t.hdr, sup, ctx());
+    if (r.err){ bad.push(`${f.name}${t.sn?'（'+t.sn+'）':''}：${r.err}`); continue; }
+    r.entries.forEach(e => ov.set(e.key, e)); const s = r.st;
+    rep.push(`${f.name}${t.sn?'（'+t.sn+'）':''}：JAN付きの表 ${s.rows}行（新しい商品${s.add}・既存の更新${s.upd}・JANを結び付け${s.bind}${s.bad?'・JANの数字が不正'+s.bad:''}${s.skip?'・名前も型番もない'+s.skip:''}）`);
+  }
+  const entries = [...ov.values()];
+  if (!entries.length) return toast(bad.length ? '取り込める内容がありませんでした：'+bad.join(' / ') : '取り込める内容がありませんでした');
+  const news = entries.filter(e => !idx0.byKey.has(e.key)).length;
+  const jset = new Set(entries.map(e => e.jan).filter(Boolean)), nn = nmGroups().filter(g => jset.has(g.jan)).length;
+  if (!confirm(`【読み取り結果】\n${rep.join('\n')}${bad.length?'\n\n【読めなかったもの】\n'+bad.join('\n'):''}\n\n商品マスタに反映：新しい商品 ${news}件／既存の更新 ${entries.length-news}件${nn?`\n名前のなかった商品のうち ${nn}件に、名前が入ります。`:''}\n取り込みますか？`)) return;
+  try { let last; for (let i=0;i<entries.length;i+=100){ last = await apiMaster('masterSave', {entries: entries.slice(i,i+100)}); } S.master = (last&&last.master)||S.master; masterDirty(); }
+  catch(e){ return toast('保存に失敗: '+(e.message||e)); }
+  renderMaster(); refreshMasterList(); _autoNmTried.clear();
+  toast(`商品マスタを更新しました（新規${news}件・更新${entries.length-news}件）`);
+  await autoResolveNames(); if ($('mNm').classList.contains('on')) nmRender(); if ($('mJan').classList.contains('on')) jRender();
+}
 /* 商品マスタ画面 */
 function renderMaster(){
   const q = mN($('mQ').value).toLowerCase().split(/\s+/).filter(Boolean), f = $('mField').value;
@@ -1979,7 +2071,9 @@ async function openMaster(){
 }
 $('arMasterBtn').onclick = openMaster;
 $('mQ').oninput = renderMaster; $('mField').onchange = renderMaster;
-$('mFile').onchange = async e => { const fs = [...e.target.files]; e.target.value=''; if (!fs.length) return; const csv = fs.filter(f => /\.csv$/i.test(f.name)), xl = fs.filter(f => !/\.csv$/i.test(f.name)); if (xl.length) await importWelfan(xl); if (csv.length) await importKaien(csv); };
+$('mFile').onchange = async e => { const fs = [...e.target.files]; e.target.value=''; if (fs.length) await importAny(fs); };
+const anyPick = () => { const el = document.createElement('input'); el.type='file'; el.multiple=true; el.accept='.xlsx,.xls,.csv,.txt'; el.onchange = async () => { const fs = [...el.files]; if (fs.length) await importAny(fs); }; el.click(); };
+document.addEventListener('click', e => { if (e.target.closest('.anyBtn')) anyPick(); });
 
 /* ---- 新品入荷 ---- */
 const NONAME = '【名称未入力】';   // JANだけ控えた商品の仮の名前（後で商品名を入れる）
