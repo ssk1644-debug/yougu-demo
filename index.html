@@ -33,6 +33,11 @@ button.d{background:#fff;color:var(--over);border-color:#f3c9c9}button.d:hover{b
 button.g{background:#f1f3f7;color:var(--tx);border-color:#f1f3f7;box-shadow:none}button.g:hover{background:#e7ebf1}
 button.r{background:var(--resv);color:#fff;border-color:var(--resv)}
 button.big{font-size:1.1rem;min-height:54px;flex:1}
+.busy{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translate(-50%,-160%);z-index:9999;background:#1e3a5f;color:#fff;font-weight:700;font-size:15px;padding:12px 20px;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;transition:transform .2s;max-width:92vw;pointer-events:none}
+.busy.on{transform:translate(-50%,0)}
+.busy.done{background:#15803d}
+.busy .spin{width:18px;height:18px;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:bspin .8s linear infinite;flex:none}
+@keyframes bspin{to{transform:rotate(360deg)}}
 .camwrap{position:relative;line-height:0}
 .camguide{position:absolute;left:15%;right:15%;top:30%;bottom:30%;border:2px solid rgba(255,90,90,.95);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,.18);pointer-events:none}
 .camtools{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;background:#111;color:#cfd6df;font-size:12px;padding:6px 8px;line-height:1.4;text-align:left}
@@ -896,6 +901,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <div id="printArea"></div>
 <div id="toast"></div>
+<div id="busyBar" class="busy" role="status" aria-live="polite"></div>
 <div id="fbFlash" aria-hidden="true"></div>
 <div id="updBanner" role="alert"><span id="updTx">新しいバージョンがあります</span><button type="button" id="updGo">更新する</button><button type="button" id="updLater" class="x" aria-label="閉じる">✕</button></div>
 <div id="nameBox" class="modal"><div class="box"><h2>名前を追加</h2><div class="f"><label>名前（担当者として選べるようになります）<input id="nameIn" placeholder="例 山田"></label>
@@ -905,7 +911,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.17-3';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.17-5';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 7;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -1021,6 +1027,36 @@ const localArr = {
   load(){ try{ const j=JSON.parse(store.get('dm_arrivals')); if(Array.isArray(j)) return j; }catch(e){} return []; },
   save(a){ store.set('dm_arrivals', JSON.stringify(a)); }
 };
+/* ---- 通信中の表示：保存のたびに「データを保存しています…」→「✅ 保存しました」を画面上に出す（本番モードのみ） ---- */
+const BUSY = {n:0, hold:0, write:false, err:false, showT:0, hideT:0};
+function busyStart(action){
+  const read = /^(list|arrivalList|masterList)$/.test(action);
+  if (read && S.lastSync) return false;   // 60秒ごとの裏の読み込みでは出さない（最初の読み込みだけ出す）
+  BUSY.n++; if (!read) BUSY.write = true;
+  clearTimeout(BUSY.hideT); clearTimeout(BUSY.showT);
+  BUSY.showT = setTimeout(() => { if (!BUSY.n) return; const el = $('busyBar');
+    el.className = 'busy on'; el.innerHTML = '<i class="spin"></i>' + (BUSY.write ? 'データを保存しています…　画面を閉じずにお待ちください' : 'データを読み込んでいます…'); }, BUSY.write ? 0 : 500);
+  return true;
+}
+function busyEnd(ok){
+  BUSY.n = Math.max(0, BUSY.n - 1); if (!ok) BUSY.err = true;
+  if (BUSY.n || BUSY.hold) return;
+  clearTimeout(BUSY.hideT);
+  BUSY.hideT = setTimeout(() => {   // 続けて次の保存が始まる場合（入荷は数回に分けて送る）に、表示がちらつかないよう少し待つ
+    if (BUSY.n || BUSY.hold) return; clearTimeout(BUSY.showT); const el = $('busyBar');
+    if (BUSY.write && !BUSY.err){ el.className = 'busy on done'; el.innerHTML = '✅ 保存しました'; setTimeout(() => { if (!BUSY.n) el.className = 'busy'; }, 1800); }
+    else el.className = 'busy';
+    BUSY.write = false; BUSY.err = false;
+  }, 400);
+}
+// 入荷の記録のように、何回かに分けて送る操作は、全部終わってから「保存しました」を出す
+async function busyWhile(fn){ BUSY.hold++; try { return await fn(); } finally { BUSY.hold--; BUSY.n++; busyEnd(true); } }
+async function gasFetch_(action, url, opt){
+  const shown = busyStart(action);
+  try { const r = await fetch(url, opt); const j = await r.json(); if (!j.ok) throw new Error(j.error||'通信エラー'); if (shown) busyEnd(true); return j; }
+  catch(e){ if (shown) busyEnd(false); throw e; }
+}
+addEventListener('beforeunload', e => { if (BUSY.n && BUSY.write){ e.preventDefault(); e.returnValue = ''; } });
 async function apiArrival(action, payload={}){
   if (!S.api){
     let a = localArr.load();
@@ -1030,8 +1066,7 @@ async function apiArrival(action, payload={}){
     return {ok:true, arrivals:a};
   }
   const body = {action, token:S.token, user:S.user, ...payload};
-  const r = await fetch(S.api, {method:'POST', body:JSON.stringify(body)});
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'通信エラー'); return j;
+  return gasFetch_(action, S.api, {method:'POST', body:JSON.stringify(body)});
 }
 async function loadArrivals(){
   if (!S.api) return localArr.load();
@@ -1073,13 +1108,14 @@ async function api(action, payload={}){
     local.save(a);
     return {ok:true, items:a, staff:[...new Set([...localNames(), ...a.map(x=>x['担当者']).filter(Boolean)])]};
   }
-  if (action==='list'){
-    const r = await fetch(`${S.api}?action=list&token=${encodeURIComponent(S.token)}`);
-    const j = await r.json(); if(!j.ok) throw new Error(j.error); return j;
-  }
+  if (action==='list') return gasFetch_('list', `${S.api}?action=list&token=${encodeURIComponent(S.token)}`);
+  // スプレッドシートの1つのセルは5万文字まで。アプリに内蔵の写真（data:〜、最大7万文字ほど）をそのまま送ると
+  // 「入力内容が1つのセルに最大50000文字…」で保存全体が失敗する。内蔵写真は画面側で商品名から出せるので、送らない
+  const noEmbed = it => (it && typeof it['写真']==='string' && it['写真'].startsWith('data:')) ? {...it, '写真':''} : it;
+  if (payload.item) payload = {...payload, item: noEmbed(payload.item)};
+  if (Array.isArray(payload.items)) payload = {...payload, items: payload.items.map(noEmbed)};
   const body = {action, token:S.token, user:S.user, ...payload}; delete body.dataUrl;
-  const r = await fetch(S.api, {method:'POST', body:JSON.stringify(body)});
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'通信エラー'); return j;
+  return gasFetch_(action, S.api, {method:'POST', body:JSON.stringify(body)});
 }
 async function run(action, payload, okMsg){
   try { const j = await api(action, payload); apply(j); if(okMsg) toast(okMsg); return j; }
@@ -1915,8 +1951,7 @@ async function apiMaster(action, payload={}){
     return {ok:true, master:a};
   }
   const body = {action, token:S.token, user:S.user, ...payload};
-  const r = await fetch(S.api, {method:'POST', body:JSON.stringify(body)});
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'通信エラー'); return j;
+  return gasFetch_(action, S.api, {method:'POST', body:JSON.stringify(body)});
 }
 async function loadMaster(){
   try { const j = await apiMaster('masterList'); S.master = j.master||[]; }
@@ -2565,14 +2600,13 @@ const _abSaveImpl = async () => {
   const nums = (S.arrivals||[]).map(i => (String(i['ID']).match(/^A(\d+)$/)||[])[1]).filter(Boolean).map(Number);
   let an = nums.length ? Math.max(...nums) : 0;
   const total = AB.reduce((a,r)=>a+(Number(r.qty)||0),0), ids = $('abAddStock').checked ? nextNewIds(total) : [];
-  const gk = {}; const newItems = []; let ip = 0;
+  const gk = {}; const newItems = [], recs = []; let ip = 0;
   for (const r of AB){
     const name = nm_(r), qty = Math.max(1, Number(r.qty)||1);
     const rec = {'ID':'A'+String(++an).padStart(4,'0'), '日付':date, '機種':name, '型番':r.model||'', 'メーカー':r.maker||'', '数量':qty, '仕入先':sup,
       '単価': r.price!=='' ? Number(r.price) : '', '担当者':S.user||'', 'メモ':'まとめて入荷', 'JAN': r.jan||''};
-    try { await apiArrival('arrivalSave', {item:rec}); } catch(e){ toast('入荷記録の保存に失敗: '+e.message+'（'+name+'以降は未保存）'); S.arrivals = await loadArrivals(); renderArrivalHist(); return; }
     const cat = (r.cat||'').trim() || (S.items.find(i=>i['機種']===name)||{})['カテゴリ'] || 'その他';
-    await learnMaster(rec, cat);
+    recs.push([rec, cat]);
     if (ids.length){
       if (gk[name]==null){ const ex = S.items.filter(i=>i['機種']===name).map(i=>Number(i['号機'])||0); gk[name] = ex.length ? Math.max(...ex) : 0; }
       const hit = autoFillProduct(name);
@@ -2582,13 +2616,23 @@ const _abSaveImpl = async () => {
     }
   }
   const kinds = AB.length;
-  if (newItems.length) await run('import', {items:newItems}, `${kinds}種類・計${total}台を入荷し、新品在庫に登録しました（ID ${ids[0]}〜${ids[ids.length-1]}）`);
-  else toast(`${kinds}種類・計${total}台の入荷を記録しました`);
+  // 在庫の登録を先にする：ここで失敗したら入荷履歴も残さず、読み取った一覧もそのまま残す（押し直せばよい）
+  if (newItems.length && !(await run('import', {items:newItems}))){
+    beep(false); abSay('❌ 保存できませんでした。一覧はそのまま残っています。もう一度「記録」を押してください');
+    return toast('❌ 在庫に登録できませんでした。何も保存していません。読み取った一覧はそのまま残っているので、もう一度「記録」を押してください');
+  }
+  for (let i=0; i<recs.length; i++){
+    const [rec, cat] = recs[i];
+    try { await apiArrival('arrivalSave', {item:rec}); }
+    catch(e){ toast(`⚠ 在庫は登録しましたが、入荷履歴の一部（${rec['機種']}以降）を保存できませんでした：${e.message}（在庫の数は正しいです）`); break; }
+    await learnMaster(rec, cat);
+  }
+  toast(newItems.length ? `${kinds}種類・計${total}台を入荷し、新品在庫に登録しました` : `${kinds}種類・計${total}台の入荷を記録しました`);
   S.arrivals = await loadArrivals(); renderArrivalHist();
   AB = []; abUndoStack = []; abLastScan = {jan:'', t:0}; ssReset(); abRender(); abSay('記録しました。続けて読めます。'); $('abUndo').style.display='none';
 };
 let abBusy = false;
-$('abSave').onclick = async () => { if (abBusy) return; abBusy = true; $('abSave').disabled = true; try { await _abSaveImpl(); } finally { abBusy = false; $('abSave').disabled = false; } };
+$('abSave').onclick = async () => { if (abBusy) return; abBusy = true; const b = $('abSave'), t0 = b.textContent; b.disabled = true; b.textContent = '⏳ 記録しています…'; try { await busyWhile(_abSaveImpl); } finally { abBusy = false; b.disabled = false; b.textContent = t0; } };
 
 function arReset(){
   ARM = null;
@@ -3053,10 +3097,8 @@ const _arSaveImpl = async () => {
     '仕入先': $('arSupplier').value.trim(), '単価': $('arPrice').value ? Number($('arPrice').value) : '',
     '担当者': S.user||'', 'メモ': $('arNote').value.trim(), 'JAN': _jr.jan||''
   };
-  try { await apiArrival('arrivalSave', {item:rec}); } catch(e){ return toast('入荷記録の保存に失敗: '+e.message); }
   const cat = $('arCat').value.trim() || (S.items.find(i=>i['機種']===name)||{})['カテゴリ'] || 'その他';
-  await learnMaster(rec, cat);
-
+  let okMsg = '入荷を記録しました';
   if ($('arAddStock').checked){
     const place = $('arPlace').value.trim() || '店';
     const existingGoki = S.items.filter(i=>i['機種']===name).map(i=>Number(i['号機'])||0);
@@ -3069,15 +3111,19 @@ const _arSaveImpl = async () => {
       '区分':'新品', 'メーカー': rec['メーカー']||(hit&&hit.maker)||'', '状態':'在庫', '貸出先':'','貸出日':'','返却期限':'',
       '担当者':'','配達担当':'','予約者':'','予約日':'', '場所': place, 'メモ':'', '写真': photoForName(name, rec['型番']||(hit&&hit.model)||'')||(hit&&hit.photo)||'', '更新日時': nowStr(), '仕入単価': rec['単価']||''
     }; });
-    await run('import',{items:newItems}, `入荷を記録し、新品在庫 ${qty}件を登録しました（ID ${ids[0]}〜${ids[ids.length-1]}／号機${startGoki}〜${goki}）`);
-  } else {
-    toast('入荷を記録しました');
+    // 在庫の登録を先にする：ここで失敗したら入荷履歴も残さない（「履歴だけあって在庫が無い」状態を作らない）
+    if (!(await run('import',{items:newItems}))){ beep(false); return toast('❌ 在庫に登録できませんでした。何も保存していません。入力はそのまま残っているので、もう一度「入荷を記録する」を押してください'); }
+    okMsg = `入荷を記録し、新品在庫 ${qty}台を登録しました`;
   }
+  try { await apiArrival('arrivalSave', {item:rec}); }
+  catch(e){ toast('⚠ 在庫は登録しましたが、入荷履歴の保存に失敗しました：'+e.message+'（在庫の数は正しいです）'); S.arrivals = await loadArrivals(); renderArrivalHist(); arReset(); return; }
+  await learnMaster(rec, cat);
+  toast(okMsg);
   S.arrivals = await loadArrivals(); renderArrivalHist();
   arReset(); $('arJan').focus();
 };
 let arBusy = false;
-$('arSave').onclick = async () => { if (arBusy) return; arBusy = true; $('arSave').disabled = true; try { await _arSaveImpl(); } finally { arBusy = false; $('arSave').disabled = false; } };
+$('arSave').onclick = async () => { if (arBusy) return; arBusy = true; const b = $('arSave'), t0 = b.textContent; b.disabled = true; b.textContent = '⏳ 記録しています…'; try { await busyWhile(_arSaveImpl); } finally { arBusy = false; b.disabled = false; b.textContent = t0; } };
 $('depQ').oninput = () => {
   const q = $('depQ').value.trim().toLowerCase();
   if (!q){ $('depSearch').style.display = 'none'; return; }
