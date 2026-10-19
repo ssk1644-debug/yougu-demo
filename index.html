@@ -119,6 +119,8 @@ dl{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;margin:8px 0}dt{colo
 #readerArr{width:100%;min-height:200px;background:#000;border-radius:var(--radius-sm);overflow:hidden}
 .abRow{border:1.5px solid var(--line);padding:12px;margin:10px 0;background:#fff}
 .abRow.unk{border-color:#e0a030;background:#fffaf0}
+.teiban{color:#b45309;font-weight:800}
+.kindtabs .arealink{font-size:.82rem;opacity:.85;border-left:1px solid var(--line)!important}
 .nojan{font-size:.7rem;background:#fff3d6;color:#a35f00;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
 .abRow.hit{outline:2px solid var(--ac,#2f6fd6)}
 .abRow .abName{font-weight:800}.abRow small{color:var(--sub)}
@@ -558,7 +560,7 @@ tr.sumsub td:first-child{padding-left:28px}
 </header>
 <div id="menuBack"></div>
 <main>
- <div class="seg kindtabs" id="kindTabs" role="tablist" aria-label="管理する区分"><button type="button" data-k="demo" class="on">🧸 デモ品</button><button type="button" data-k="new">📦 新品在庫</button></div>
+ <div class="seg kindtabs" id="kindTabs" role="tablist" aria-label="管理する区分"><button type="button" data-k="demo" class="on">🧸 デモ品</button><button type="button" data-k="new">📦 新品在庫</button><button type="button" data-k="area" class="arealink">🛍 一般用品へ</button></div>
  <div class="chips" id="chips"></div>
  <div id="distBar" aria-hidden="true"></div>
  <div id="syncBar"><button type="button" id="syncNow" title="今すぐ同期"><i class="sdot"></i><span id="syncTx">同期</span></button><span id="verTx"></span></div>
@@ -779,9 +781,10 @@ tr.sumsub td:first-child{padding-left:28px}
 </div></div>
 <!-- 発注点 -->
 <div class="modal" id="mMin"><div class="box">
- <h2>発注点の設定</h2><div class="hint" id="minName"></div>
- <div class="f"><label>在庫がこの台数以下になったら「残りわずか」と表示します（0にすると、在庫なしの時だけ警告）<input type="number" id="minVal" min="0" inputmode="numeric"></label></div>
- <div class="row"><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="minOk">保存</button></div>
+ <h2>★ 定番の設定</h2><div class="hint" id="minName"></div>
+ <div class="hint">定番にした商品は、在庫が0になっても一覧に残り、「在庫なし（定番）」として発注を知らせます。定番でない商品は、売り切れると一覧から自動で隠れます。</div>
+ <div class="f"><label>発注点：在庫がこの台数以下になったら「残りわずか」と表示（0にすると、在庫なしの時だけ知らせる）<input type="number" id="minVal" min="0" inputmode="numeric" placeholder="1"></label></div>
+ <div class="row"><button class="g" id="minOff" style="display:none">定番をやめる</button><span class="sp"></span><button class="g" data-close>キャンセル</button><button class="p" id="minOk">定番にする</button></div>
 </div></div>
 <!-- 商品マスタ -->
 <div class="modal" id="mMaster"><div class="box w">
@@ -922,7 +925,7 @@ tr.sumsub td:first-child{padding-left:28px}
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VER = '2026.10.19-2';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
+const APP_VER = '2026.10.19-4';   // 画面を更新するたびに変える（端末側が「新しい版がある」と気づく目印）
 const NEED_GAS = 7;       // この版が必要とするサーバー側(Code.gs)の版
 const STATUSES = ['在庫','貸出中','予約中','メンテ中','廃棄'];
 /* ---- 商品マスタ（ウェルファン発注実績 2026/1〜10 から作成）---- */
@@ -953,6 +956,11 @@ const store = {
   get(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] ?? null; } },
   set(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k]=v; } }
 };
+/* 入口：?area=ippan で「一般用品」（入浴・排泄以外の新品）だけを扱う画面になる。データ（シート・商品マスタ）は共通 */
+const AREA = (() => { try { return new URLSearchParams(location.search).get('area')==='ippan' ? 'ippan' : 'main'; } catch(e){ return 'main'; } })();
+const AREA_NAME = {main:'デモ・入浴排泄', ippan:'一般用品'};
+function areaOfField_(f){ return !f ? '' : (f==='入浴' || f==='排泄') ? 'main' : 'ippan'; }
+function areaUrl_(a){ return location.pathname + (a==='ippan' ? '?area=ippan' : ''); }
 const S = {
   api: store.get('dm_api') || '', token: store.get('dm_token') || '', user: store.get('dm_user') || '',
   items: [], staff: [], arrivals: [], master: [], big:'', view:'tile', dir:1, chip:'', editingId:null, lendId:null, resvId:null, photo:null,
@@ -1311,8 +1319,8 @@ function render(){
   ['fKind','fStaff','sortKey','sortDir'].forEach(id => $(id).style.display = nv ? 'none' : '');
   $('grp').parentElement.style.display = nv ? 'none' : '';
   $('bigBar').style.display = nv ? 'none' : '';
-  try { const w = newGroups().filter(g => g.st!=='ok').length; $('kindTabs').querySelector('[data-k="new"]').textContent = '📦 新品在庫' + (w ? ` ⚠${w}` : ''); } catch(e){}
-  $('kindTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.k==='new')===nv)); $('views').style.display = nv ? 'none' : '';
+  try { const w = newGroups().filter(g => g.st!=='ok' && !g.hidden).length; const tb = $('kindTabs').querySelector('[data-k="new"]'); tb.textContent = (tb.dataset.lbl || '📦 新品在庫') + (w ? ` ⚠${w}` : ''); } catch(e){}
+  $('kindTabs').querySelectorAll('button:not([data-k="area"])').forEach(b => b.classList.toggle('on', (b.dataset.k==='new')===nv)); $('views').style.display = nv ? 'none' : '';
   const a = filtered(), box = $('content');
   if (S.view==='sum') return renderSum(box);
   if (nv) return renderNew(box);
@@ -1769,6 +1777,7 @@ document.addEventListener('keydown', e => {
 let auTarget = [], auFound = new Map();   // id -> {type:'ok'|'mismatch'|'unknown', it}
 const isDemo_ = it => (it['区分']||'デモ') !== '新品';
 $('bAudit').onclick = () => {
+  if (AREA==='ippan') return openNsAu();
   const demo = S.items.filter(i => isDemo_(i) && i['状態']!=='廃棄'), dStock = demo.filter(i => i['状態']==='在庫').length;
   const ng = newGroups().filter(g => g.stock>0);
   $('auChDemoN').textContent = `デモ品 ${demo.length}台（在庫 ${dStock}台）`;
@@ -2388,46 +2397,51 @@ $('gPhotoF').onchange = async e => {
 
 /* ---- 📦 新品在庫の管理画面（在庫が一目でわかる） ---- */
 S.nsFilter = ''; S.nsSort = 'low'; S.nsMode = 'card';
-function newGroups(){
+function newGroups(all){
   const idx = masterIdx(), m = new Map();
   const gone = new Map();   // 全部売り切れた（出庫・廃棄）商品：「在庫なし」として残す（取り扱いをやめたものは除く）
   S.items.forEach(it => { if (it['区分']!=='新品') return; const k = it['機種']||it['ID'];
     if (it['状態']==='廃棄'){ if (!gone.has(k)) gone.set(k,[]); gone.get(k).push(it); return; }
     if (!m.has(k)) m.set(k,[]); m.get(k).push(it); });
   gone.forEach((us, k) => { if (!m.has(k) && !us.every(u => u['場所']==='取扱終了')) m.set(k, us); });
+  idx.list.forEach(e => { if (e.min!=null && e.min!=='' && e.name && !m.has(e.name) && (all || areaOfField_(e.field)===AREA)) m.set(e.name, []); });   // 定番：まだ入荷していなくても並べる
   return [...m.entries()].map(([name, units]) => {
     const c = {在庫:0, 貸出中:0, 予約中:0, メンテ中:0}; units.forEach(u => { if (c[u['状態']]!==undefined) c[u['状態']]++; });
     const live = units.filter(u => u['状態']!=='廃棄').length;
     const me = idx.byName.get(name), minSet = !!(me && me.min!=null && me.min!==''), min = minSet ? Number(me.min) : 1;
-    const stock = c['在庫'], st = stock===0 ? 'out' : stock<=min ? 'low' : 'ok';
+    const stock = c['在庫'], st = stock===0 ? 'out' : (minSet && stock<=min) ? 'low' : 'ok';
+    const busy = c['貸出中'] + c['予約中'] + c['メンテ中'], hidden = stock===0 && !minSet && !busy;   // 定番ではない売り切れ商品は、ふだんは隠す
     const inS = units.filter(u => u['状態']==='在庫'), costs = inS.map(u => Number(u['仕入単価'])).filter(n => n>0);
     const places = {}; inS.forEach(u => { const pl = u['場所']||'-'; places[pl] = (places[pl]||0)+1; });
-    const f = units[0];
-    const _fb = units.find(u=>u['写真']) ? '' : photoForName(name, f['型番']);
-    return {name, units, c, stock, jan:(me&&me.jan)||(String(name).startsWith(NONAME)?name.slice(NONAME.length):''), total:live, min, minSet, st, first: units.find(u=>u['写真'])||(_fb ? {...f,'写真':_fb} : f), cat:f['カテゴリ']||'', model:f['型番']||'', maker:f['メーカー']||'',
+    const f = units[0] || {'機種':name, '型番':(me&&me.model)||'', 'メーカー':(me&&me.maker)||'', 'カテゴリ':(me&&me.cat)||'', '写真':(me&&me.photo)||''};
+    const _fb = units.find(u=>u['写真']) || f['写真'] ? '' : photoForName(name, f['型番']);
+    const area = areaOfField_((me && me.field) || MASTER_FIELD[f['カテゴリ']] || (f['カテゴリ'] ? 'その他' : ''));
+    return {name, units, c, stock, hidden, area, jan:(me&&me.jan)||(String(name).startsWith(NONAME)?name.slice(NONAME.length):''), total:live, min, minSet, st, first: units.find(u=>u['写真'])||(_fb ? {...f,'写真':_fb} : f), cat:f['カテゴリ']||'', model:f['型番']||'', maker:f['メーカー']||'',
       cmin: costs.length ? Math.min(...costs) : null, cmax: costs.length ? Math.max(...costs) : null, value: costs.reduce((a,b)=>a+b,0), costN: costs.length, places};
-  });
+  }).filter(g => all || !g.area || g.area===AREA);   // 分野が分からない商品（名前未入力など）は両方に出す
 }
 const NST = {out:'在庫なし', low:'残りわずか', ok:'在庫あり'};
 function renderNew(box){
   const q = $('q').value.trim().toLowerCase(), cat = $('fCat').value;
-  let all = newGroups().filter(g => (!cat || g.cat===cat) && (!q || [g.name,g.model,g.maker,g.cat].some(v => String(v||'').toLowerCase().includes(q))));
-  const cnt = {out:0, low:0, ok:0}; all.forEach(g => cnt[g.st]++);
+  const every = newGroups().filter(g => (!cat || g.cat===cat) && (!q || [g.name,g.model,g.maker,g.cat].some(v => String(v||'').toLowerCase().includes(q))));
+  const goneL = every.filter(g => g.hidden);
+  let all = (S.nsFilter==='gone') ? goneL : every.filter(g => !g.hidden);
+  const cnt = {out:0, low:0, ok:0}; every.filter(g => !g.hidden).forEach(g => cnt[g.st]++);
   const stockSum = all.reduce((a,g) => a+g.stock, 0), valSum = all.reduce((a,g) => a+g.value, 0), costN = all.reduce((a,g) => a+g.costN, 0);
-  let list = S.nsFilter ? all.filter(g => g.st===S.nsFilter) : all.slice();
+  let list = (S.nsFilter && S.nsFilter!=='gone') ? all.filter(g => g.st===S.nsFilter) : all.slice();
   const so = {out:0, low:1, ok:2};
   list.sort((a,b) => S.nsSort==='name' ? a.name.localeCompare(b.name,'ja',{numeric:true}) : S.nsSort==='cat' ? (a.cat.localeCompare(b.cat,'ja') || a.name.localeCompare(b.name,'ja')) :
     S.nsSort==='many' ? (b.stock-a.stock) : (so[a.st]-so[b.st] || a.stock-b.stock || a.name.localeCompare(b.name,'ja',{numeric:true})));
   const chip = (k,n,l,cls) => `<div class="chip ${cls||''} ${S.nsFilter===k?'on':''}" data-f="${k}"><b>${n}</b><small>${l}</small></div>`;
-  let h = `<div class="nsum">${chip('',all.length,'品目（すべて）','')}${chip('out',cnt.out,'在庫なし','out')}${chip('low',cnt.low,'残りわずか','low')}${chip('ok',cnt.ok,'在庫あり','ok')}` +
+  let h = `<div class="nsum">${chip('',every.length-goneL.length,'品目','')}${chip('out',cnt.out,'在庫なし（定番）','out')}${chip('low',cnt.low,'残りわずか','low')}${chip('ok',cnt.ok,'在庫あり','ok')}${goneL.length ? chip('gone',goneL.length,'売り切れ（隠し中）','') : ''}` +
     `<div class="chip st"><b>${stockSum}</b><small>在庫 合計台数</small></div><div class="chip st"><b style="font-size:1.05rem">${costN ? valSum.toLocaleString()+'円' : '－'}</b><small>仕入価値（税抜）</small></div></div>` +
     `<div class="ntool"><select id="nsSort"><option value="low">並び：在庫が少ない順</option><option value="many">在庫が多い順</option><option value="name">商品名</option><option value="cat">カテゴリ</option></select>` +
     `<div class="seg" id="nsMode"><button data-m="card">カード</button><button data-m="table">表</button></div><span class="sp" style="flex:1"></span>${nmGroups().length ? `<button class="g" id="nsNm">🏷 名前を入れる (${nmGroups().length})</button>` : ''}<button class="g" id="nsAu">📋 棚卸</button>${legacyNewIds().length ? `<button class="g" id="nsMig">🔢 番号の整理 (${legacyNewIds().length})</button>` : ''}<button class="g" id="nsJan">🔗 JANを登録${all.filter(g=>!g.jan).length ? ` (${all.filter(g=>!g.jan).length})` : ''}</button><button class="p" id="nsIn">🚚 新品入荷</button></div>`;
   if (!list.length){
-    h += `<div class="empty">${all.length ? 'この条件の商品はありません' : '新品在庫はまだありません。「🚚 新品入荷」で、「新品在庫の数に加える」を付けて入荷すると、ここに並びます。'}</div>`;
+    h += `<div class="empty">${S.nsFilter==='gone' ? '隠している売り切れ商品はありません' : all.length ? 'この条件の商品はありません' : '新品在庫はまだありません。「🚚 新品入荷」で、「新品在庫の数に加える」を付けて入荷すると、ここに並びます。'}</div>`;
   } else if (S.nsMode==='table' && !isMob()){
     h += '<div class="wrap"><table><thead><tr><th></th><th>状況</th><th>機種</th><th>カテゴリ</th><th>在庫</th><th>持出中</th><th>予約中</th><th>発注点</th><th>置き場所</th><th>仕入単価（税抜）</th></tr></thead><tbody>' +
-      list.map((g,i) => `<tr data-n="${i}"><td class="tph">${photoHTML(g.first)}</td><td><span class="nbadge2 ${g.st}">${NST[g.st]}</span></td><td>${esc(g.name)}</td><td>${esc(g.cat)}</td><td><b style="font-size:1.1rem">${g.stock}</b>台</td><td>${g.c['貸出中']||''}</td><td>${g.c['予約中']||''}</td><td>${g.min}台${g.minSet?'':'（標準）'}</td><td>${esc(Object.entries(g.places).map(([k,v])=>k+v).join('・'))}</td><td>${g.cmin==null?'':(g.cmin===g.cmax ? yenFmt(g.cmin) : yenFmt(g.cmin)+'〜'+yenFmt(g.cmax))}</td></tr>`).join('') + '</tbody></table></div>';
+      list.map((g,i) => `<tr data-n="${i}"><td class="tph">${photoHTML(g.first)}</td><td><span class="nbadge2 ${g.st}">${NST[g.st]}</span></td><td>${esc(g.name)}</td><td>${esc(g.cat)}</td><td><b style="font-size:1.1rem">${g.stock}</b>台</td><td>${g.c['貸出中']||''}</td><td>${g.c['予約中']||''}</td><td>${g.minSet ? '★ '+g.min+'台' : '－'}</td><td>${esc(Object.entries(g.places).map(([k,v])=>k+v).join('・'))}</td><td>${g.cmin==null?'':(g.cmin===g.cmax ? yenFmt(g.cmin) : yenFmt(g.cmin)+'〜'+yenFmt(g.cmax))}</td></tr>`).join('') + '</tbody></table></div>';
   } else {
     h += '<div class="ngrid">' + list.map((g,i) => {
       const pct = g.total ? Math.round(g.stock/g.total*100) : 0, pl = Object.entries(g.places).map(([k,v]) => `${esc(k)} ${v}`).join('・');
@@ -2437,8 +2451,8 @@ function renderNew(box){
         <div class="nnm">${esc(g.name)}</div><div class="nsub">${esc([g.model,g.maker].filter(Boolean).join('　'))}${g.name.startsWith(NONAME)?'<span class="nojan">名前未入力（JANは登録済み）</span>':(g.jan?'':'<span class="nojan">JAN未登録</span>')}</div>
         <div class="nstock"><span class="nnum">${g.stock}</span><span class="nunit">台 在庫</span><span class="nbadge">${NST[g.st]}</span></div>
         <div class="nbar"><i style="width:${pct}%"></i></div>
-        <div class="nmeta">${out || (g.total ? '手元にすべてあります' : '売り切れです（履歴は残っています）')}${pl ? `<br>置き場所：${pl}` : ''}<br>${cost}${cost?'　':''}発注点 ${g.min}台${g.minSet?'':'（標準）'}</div>
-        <div class="nact"><button class="p" data-a="in">＋入荷</button><button class="g" data-a="min">発注点</button><button class="g" data-a="photo">📷 写真</button></div></div></div>`; }).join('') + '</div>';
+        <div class="nmeta">${out || (g.total ? '手元にすべてあります' : g.minSet ? (g.units.length ? '在庫がありません。発注してください' : 'まだ入荷していません') : '売り切れです（履歴は残っています）')}${pl ? `<br>置き場所：${pl}` : ''}${cost||g.minSet?'<br>':''}${cost}${cost&&g.minSet?'　':''}${g.minSet?`<b class="teiban">★定番</b> 発注点 ${g.min}台`:''}</div>
+        <div class="nact"><button class="p" data-a="in">＋入荷</button><button class="g" data-a="min">${g.minSet?'★定番':'☆定番'}</button><button class="g" data-a="photo">📷 写真</button></div></div></div>`; }).join('') + '</div>';
   }
   box.innerHTML = h;
   $('nsSort').value = S.nsSort; $('nsSort').onchange = () => { S.nsSort = $('nsSort').value; render(); };
@@ -2457,22 +2471,25 @@ async function arrivalFor(name){
   await openArrival();
   const m = masterIdx().byName.get(name);
   if (m) fillFromMaster(m);
-  else { const g = newGroups().find(x => x.name===name); $('arName').value = name; if (g){ $('arModel').value = g.model; $('arMaker').value = g.maker; $('arCat').value = g.cat; } }
+  else { const g = newGroups(true).find(x => x.name===name); $('arName').value = name; if (g){ $('arModel').value = g.model; $('arMaker').value = g.maker; $('arCat').value = g.cat; } }
   $('arQty').focus(); $('arQty').select();
 }
 function openMin(g){
-  S.minTarget = g.name; $('minName').innerHTML = `<b>${esc(g.name)}</b>　現在の在庫 ${g.stock}台`; $('minVal').value = g.minSet ? g.min : ''; $('minVal').placeholder = '標準：1';
+  S.minTarget = g.name; $('minName').innerHTML = `<b>${esc(g.name)}</b>　現在の在庫 ${g.stock}台`; $('minVal').value = g.minSet ? g.min : '1';
+  $('minOff').style.display = g.minSet ? '' : 'none'; $('minOk').textContent = g.minSet ? '保存' : '★ 定番にする';
   open_('mMin'); setTimeout(() => $('minVal').focus(), 50);
 }
-$('minOk').onclick = async () => {
-  const name = S.minTarget, v = $('minVal').value.trim(), g = newGroups().find(x => x.name===name); if (!g) return close_('mMin');
+$('minOff').onclick = () => { $('minVal').value = ''; saveMin_(true); };
+$('minOk').onclick = () => saveMin_(false);
+async function saveMin_(off){
+  const name = S.minTarget, v = off ? '' : ($('minVal').value.trim() || '1'), g = nsGroup(name); if (!g) return close_('mMin');
   const m = masterIdx().byName.get(name);
   const e = m ? {...m} : {key:'N:'+name, jan:'', name, model:g.model, maker:g.maker, cat:g.cat, field:MASTER_FIELD[g.cat]||'その他', cost:null, hist:[], retail:null, last:''};
   if (v==='') delete e.min; else e.min = Math.max(0, Number(v)||0);
-  try { const j = await apiMaster('masterSave', {entries:[e]}); S.master = j.master||[]; masterDirty(); toast(v==='' ? '発注点を標準（1台）に戻しました' : `発注点を ${e.min}台 にしました`); }
+  try { const j = await apiMaster('masterSave', {entries:[e]}); S.master = j.master||[]; masterDirty(); toast(v==='' ? '定番をやめました（売り切れると一覧から隠れます）' : `★定番にしました（発注点 ${e.min}台）`); }
   catch(err){ return toast('保存に失敗: '+err.message); }
-  close_('mMin'); render();
-};
+  close_('mMin'); render(); if ($('mNewG').classList.contains('on')) openNewG(name, true);
+}
 $('minVal').onkeydown = e => { if (e.key==='Enter') $('minOk').click(); };
 
 /* ---- 連続入荷（カメラ／USBリーダーで次々に読んで、まとめて記録） ---- */
@@ -2791,7 +2808,7 @@ $('arNmBtn').onclick = openNm;
 /* ---- 📦 新品在庫：商品ごとの在庫パネル／出庫／棚卸（1台ごとの番号は使わず、数量で管理） ---- */
 function legacyNewIds(){ return S.items.filter(i => i['区分']==='新品' && !/^N\d+$/.test(String(i['ID']))); }
 function nsGroup(name){
-  const g = newGroups().find(x => x.name===name); if (g) return g;
+  const g = newGroups(true).find(x => x.name===name); if (g) return g;
   const m = masterIdx().byName.get(name), a = (S.arrivals||[]).find(r => r['機種']===name) || {};
   const minSet = !!(m && m.min!=null && m.min!==''), min = minSet ? Number(m.min) : 1;
   return {name, units:[], c:{在庫:0,貸出中:0,予約中:0,メンテ中:0}, stock:0, jan:(m&&m.jan)||String(a['JAN']||''), total:0, min, minSet, st:'out', first:null,
@@ -2808,8 +2825,8 @@ function openNewG(name, quiet){
    <div class="row" style="align-items:flex-start;gap:14px;flex-wrap:nowrap"><div class="phm" style="width:96px;height:96px;flex:none;border-radius:12px;overflow:hidden;background:#f3f5f9;display:grid;place-items:center;font-size:2rem">${g.first ? photoHTML(g.first) : '📦'}</div>
     <div style="min-width:0"><div class="hint" style="margin:0">${esc([g.model,g.maker,g.cat].filter(Boolean).join('　'))}</div><div class="hint" style="margin:2px 0">${g.jan ? 'JAN '+esc(g.jan)+(g.name.startsWith(NONAME)?'　<span class="nojan">名前未入力</span>':'') : '<span class="nojan">JAN未登録</span>'}</div>
      <div class="bigstock"><b>${g.stock}</b><span>台 在庫</span><span class="nbadge2 ${g.st}">${NST[g.st]}</span></div>
-     <div class="hint" style="margin:0">発注点 ${g.min}台${g.minSet?'':'（標準）'}${pl?`　／　置き場所 ${pl}`:''}</div></div></div>
-   <div class="row" style="margin:12px 0"><button class="p" id="ngIn">＋ 入荷</button><button class="p" id="ngOut" ${g.stock?'':'disabled'}>出庫する</button><button class="g" id="ngMin">発注点</button>${g.units.length?'<button class="g" id="ngPh">📷 写真</button>':''}${(!g.stock && g.units.length && !g.total)?'<button class="g" id="ngHide">一覧から外す</button>':''}</div>${(!g.stock && g.units.length && !g.total)?'<div class="hint" style="margin:-6px 0 8px">売り切れです。もう扱わない商品は「一覧から外す」で消せます（履歴は残ります。もう一度入荷すれば、また表示されます）。</div>':''}
+     <div class="hint" style="margin:0">${g.minSet ? `<b class="teiban">★定番</b> 発注点 ${g.min}台` : '定番ではありません（売り切れると一覧から隠れます）'}${pl?`　／　置き場所 ${pl}`:''}</div></div></div>
+   <div class="row" style="margin:12px 0"><button class="p" id="ngIn">＋ 入荷</button><button class="p" id="ngOut" ${g.stock?'':'disabled'}>出庫する</button><button class="g" id="ngMin">${g.minSet?'★ 定番・発注点':'☆ 定番にする'}</button>${g.units.length?'<button class="g" id="ngPh">📷 写真</button>':''}${(!g.stock && g.units.length && !g.total && g.hidden)?'<button class="g" id="ngHide">完全に外す</button>':''}</div>${(!g.stock && g.units.length && !g.total && g.hidden)?'<div class="hint" style="margin:-6px 0 8px">売り切れなので、ふだんの一覧には出ません（「売り切れ（隠し中）」で見られます）。もう扱わない商品は「完全に外す」で、隠し中からも消せます。履歴は残り、もう一度入荷すればまた表示されます。</div>':''}
    <h3 style="margin:14px 0 6px">入荷の履歴</h3>` +
    (arr.length ? '<div class="wrap"><table><thead><tr><th>日付</th><th>数量</th><th>仕入先</th><th>単価</th></tr></thead><tbody>' + arr.map(r => `<tr><td>${esc(r['日付'])}</td><td>${esc(r['数量'])}</td><td>${esc(r['仕入先']||'')}</td><td>${r['単価']?esc(r['単価'])+'円':''}</td></tr>`).join('') + '</tbody></table></div>' : '<div class="hint">まだ入荷の記録がありません</div>') +
    `<h3 style="margin:14px 0 6px">出庫・棚卸の履歴</h3>` +
@@ -2860,7 +2877,7 @@ async function migrateNewIds(){
 let NSA = {counts:{}, unknown:{}}, nsaHit = '', NSS = {n:new Map(), total:0}, _nsaT = 0, nsaLastScan = {jan:'', t:0};
 function nsaLoad(){ try { const j = JSON.parse(store.get('dm_nsa')||'null'); NSA = (j && j.counts) ? {counts:j.counts, unknown:j.unknown||{}} : {counts:{}, unknown:{}}; } catch(e){ NSA = {counts:{}, unknown:{}}; } }
 function nsaSave(){ try { store.set('dm_nsa', JSON.stringify(NSA)); } catch(e){} }
-function nsaNameByJan(jan){ const m = masterIdx().byJan.get(jan); if (m) return m.name; const ph = NONAME + jan; return newGroups().some(g => g.name===ph) ? ph : null; }
+function nsaNameByJan(jan){ const m = masterIdx().byJan.get(jan); if (m) return m.name; const ph = NONAME + jan; return newGroups(true).some(g => g.name===ph) ? ph : null; }
 function nsaRows(){
   const q = mN($('nsaQ').value).toLowerCase().split(/\s+/).filter(Boolean), map = new Map();
   newGroups().forEach(g => map.set(g.name, g));
@@ -2969,6 +2986,7 @@ $('nsaApply').onclick = async () => {
 };
 $('kindTabs').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.k==='area'){ location.href = areaUrl_(AREA==='ippan' ? 'main' : 'ippan'); return; }
   if (b.dataset.k==='new'){ if (S.view!=='new') $('vNew').click(); }
   else if (S.view==='new') document.querySelector(`#views [data-v="${S.lastView||'tile'}"]`).click();
 });
@@ -3166,6 +3184,8 @@ const _arSaveImpl = async () => {
   try { await apiArrival('arrivalSave', {item:rec}); }
   catch(e){ toast('⚠ 在庫は登録しましたが、入荷履歴の保存に失敗しました：'+e.message+'（在庫の数は正しいです）'); S.arrivals = await loadArrivals(); renderArrivalHist(); arReset(); return; }
   await learnMaster(rec, cat);
+  { const me = masterIdx().byName.get(name), ar = areaOfField_((me && me.field) || MASTER_FIELD[cat] || 'その他');
+    if ($('arAddStock').checked && ar && ar!==AREA) okMsg += `（この商品は「${AREA_NAME[ar]}」の画面に表示されます）`; }
   toast(okMsg);
   S.arrivals = await loadArrivals(); renderArrivalHist();
   arReset(); $('arJan').focus();
@@ -3707,7 +3727,7 @@ async function checkUpdate(manual){
     else if (manual) toast('最新の版です（v' + APP_VER + '）');
   } catch(e){ if (manual) toast('更新を確認できませんでした（通信を確認してください）'); }
 }
-$('updGo').onclick = () => { location.replace(location.pathname + '?v=' + encodeURIComponent(_newVer || Date.now())); };
+$('updGo').onclick = () => { location.replace(location.pathname + '?v=' + encodeURIComponent(_newVer || Date.now()) + (AREA==='ippan' ? '&area=ippan' : '')); };
 $('updLater').onclick = () => $('updBanner').classList.remove('on');
 $('sUpd').onclick = () => checkUpdate(true);
 function renderVerInfo(){ $('verInfo').textContent = `アプリ v${APP_VER}` + (S.api ? `　／　サーバー(GAS) ${S.gasVer===null ? '未確認' : (S.gasVer>=NEED_GAS ? 'v'+S.gasVer+'（最新）' : 'v'+S.gasVer+'（要更新：Code.gsを貼り替えて再デプロイ）')}` : '　／　試用モード（サーバー未接続）'); }
@@ -3739,10 +3759,21 @@ function checkOverdue(){
 }
 
 /* ---- 起動 ---- */
+if (AREA==='ippan'){
+  document.title = '一般用品 在庫管理'; document.body.classList.add('area-ippan');
+  document.querySelector('header h1').firstChild.textContent = '一般用品 在庫 ';
+  const t = $('kindTabs'); t.querySelector('[data-k="demo"]').style.display = 'none';
+  t.querySelector('[data-k="new"]').dataset.lbl = '🛍 一般用品の在庫'; t.querySelector('[data-k="area"]').textContent = '🛁 デモ・入浴排泄へ';
+  ['bNew','bBulk','bDep'].forEach(id => $(id).style.display = 'none');
+  const bs = document.querySelector('#bnav [data-go="stock"]'); if (bs) bs.style.display = 'none';
+  const bn = document.querySelector('#bnav [data-go="new"]'); if (bn) bn.lastChild.textContent = '一般用品';
+  S.view = 'new'; $('views').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v==='new'));
+}
 $('eStatus').innerHTML = STATUSES.map(c => `<option>${c}</option>`).join('');
 if (store.get('dm_big')==='1') document.documentElement.style.fontSize = '19px';
 modeTag();
 reload().then(() => {
+  if (AREA==='ippan'){ S._mLoaded = 1; loadMaster().then(render); return; }
   const id = new URLSearchParams(location.search).get('id');   // 以前のQRコードをカメラアプリで読んだ場合
   if (id) { if (S.items.some(x => String(x['ID'])===id)) openDetail(id); else toast('登録なし: '+id); }
   else checkOverdue();
